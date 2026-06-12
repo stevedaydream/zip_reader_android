@@ -1,0 +1,21 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    xmlns:tools="http://schemas.android.com/tools"
+4    package="com.comicreader.bridge" >
+5
+6    <uses-sdk android:minSdkVersion="24" />
+7    <!-- 掃描使用者指定資料夾（Android 11+ 的「所有檔案存取」） -->
+8    <uses-permission
+8-->I:\project\zip_reader_android\src-tauri\plugins\tauri-plugin-androidbridge\android\src\main\AndroidManifest.xml:4:5-6:40
+9        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+9-->I:\project\zip_reader_android\src-tauri\plugins\tauri-plugin-androidbridge\android\src\main\AndroidManifest.xml:5:9-66
+10        tools:ignore="ScopedStorage" />
+10-->I:\project\zip_reader_android\src-tauri\plugins\tauri-plugin-androidbridge\android\src\main\AndroidManifest.xml:6:9-37
+11    <uses-permission
+11-->I:\project\zip_reader_android\src-tauri\plugins\tauri-plugin-androidbridge\android\src\main\AndroidManifest.xml:7:5-9:38
+12        android:name="android.permission.READ_EXTERNAL_STORAGE"
+12-->I:\project\zip_reader_android\src-tauri\plugins\tauri-plugin-androidbridge\android\src\main\AndroidManifest.xml:8:9-64
+13        android:maxSdkVersion="32" />
+13-->I:\project\zip_reader_android\src-tauri\plugins\tauri-plugin-androidbridge\android\src\main\AndroidManifest.xml:9:9-35
+14
+15</manifest>

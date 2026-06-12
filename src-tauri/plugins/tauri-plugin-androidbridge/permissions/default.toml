@@ -1,0 +1,13 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = "Default permissions: TTS speak/stop and all-files-access helpers"
+permissions = [
+  "allow-speak",
+  "allow-stopSpeak",
+  "allow-hasAllFilesAccess",
+  "allow-requestAllFilesAccess",
+  "allow-pickFolder",
+  "allow-registerListener",
+  "allow-removeListener",
+]

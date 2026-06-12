@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-hasAllFilesAccess"
+description = "Enables the hasAllFilesAccess command without any pre-configured scope."
+commands.allow = ["hasAllFilesAccess"]
+
+[[permission]]
+identifier = "deny-hasAllFilesAccess"
+description = "Denies the hasAllFilesAccess command without any pre-configured scope."
+commands.deny = ["hasAllFilesAccess"]

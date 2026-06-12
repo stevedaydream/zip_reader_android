@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>漫畫壓縮檔閱讀器</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+TC:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" src="/src/main.ts" defer></script>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <!-- 主畫面（三個分頁） -->
+    <div id="app-shell">
+      <header class="masthead">
+        <div class="masthead-title">
+          <h1>書庫</h1>
+          <span class="masthead-sub">Comic · Novel · Web</span>
+        </div>
+        <nav class="tabs">
+          <button class="tab active" data-tab="comic">漫畫</button>
+          <button class="tab" data-tab="novel">小說</button>
+          <button class="tab" data-tab="sources">線上資源</button>
+        </nav>
+        <div class="spacer"></div>
+        <nav class="masthead-actions">
+          <button id="btn-passwords">密碼管理</button>
+          <button id="btn-check-update">檢查更新</button>
+          <button id="btn-fullscreen-app" class="desktop-only" title="切換全螢幕">全螢幕</button>
+        </nav>
+      </header>
+
+      <!-- 漫畫書庫 -->
+      <section id="library-view" class="tab-view">
+        <div class="folder-row">
+          <button id="btn-pick-folder" class="primary">選擇資料夾</button>
+          <span class="folder-label">來源</span>
+          <span id="folder-path" class="folder-path">尚未選擇資料夾</span>
+          <div class="spacer"></div>
+          <button id="btn-refresh" title="重新整理">重新整理</button>
+        </div>
+        <main id="archive-grid" class="archive-grid">
+          <p class="empty-hint">請先選擇含有壓縮檔（ZIP・CBZ・7Z・RAR・CBR）的資料夾</p>
+        </main>
+      </section>
+
+      <!-- 小說書庫 -->
+      <section id="novel-view" class="tab-view hidden">
+        <div class="folder-row">
+          <button id="btn-pick-novel-folder" class="primary">選擇資料夾</button>
+          <span class="folder-label">來源</span>
+          <span id="novel-folder-path" class="folder-path">尚未選擇資料夾</span>
+          <div class="spacer"></div>
+          <button id="btn-refresh-novels" title="重新整理">重新整理</button>
+        </div>
+        <main id="novel-grid" class="archive-grid">
+          <p class="empty-hint">請先選擇含有電子書的資料夾（TXT・EPUB・MOBI・AZW3，TXT 自動偵測編碼）</p>
+        </main>
+      </section>
+
+      <!-- 線上資源 -->
+      <section id="sources-view" class="tab-view hidden">
+        <div class="folder-row">
+          <span class="folder-label">說明</span>
+          <span class="folder-note">連結以獨立視窗開啟，並套用基本廣告與彈窗阻擋；可自行新增來源</span>
+        </div>
+        <main class="sources-wrap">
+          <div id="sources-grid" class="sources-grid"></div>
+          <form id="source-add-form" class="source-add">
+            <input id="source-name" type="text" placeholder="名稱" autocomplete="off" />
+            <input id="source-url" type="text" placeholder="https://…" autocomplete="off" />
+            <button type="submit" class="primary">新增來源</button>
+          </form>
+        </main>
+      </section>
+    </div>
+
+    <!-- 漫畫閱讀畫面 -->
+    <div id="reader-view" class="hidden">
+      <header class="reader-bar">
+        <button id="btn-back" class="ghost-dark">← 返回書庫</button>
+        <span id="reader-title" class="reader-title"></span>
+        <span id="page-indicator" class="page-indicator"></span>
+        <div class="spacer"></div>
+        <label class="ctrl">
+          間隔（秒）
+          <input id="auto-interval" type="number" min="0.5" step="0.5" value="3" />
+        </label>
+        <button id="btn-autoplay" class="ghost-dark" title="自動翻頁">自動翻頁</button>
+        <button id="btn-fit" class="ghost-dark" title="切換顯示模式">適應高度</button>
+        <button id="btn-fullscreen" class="ghost-dark desktop-only" title="全螢幕">全螢幕</button>
+      </header>
+      <main id="page-container" class="page-container">
+        <div id="zone-prev" class="nav-zone nav-prev" title="上一頁"></div>
+        <img id="page-image" alt="" />
+        <div id="zone-next" class="nav-zone nav-next" title="下一頁"></div>
+        <div id="page-loading" class="page-loading hidden">載入中</div>
+      </main>
+    </div>
+
+    <!-- 小說閱讀畫面 -->
+    <div id="novel-reader-view" class="hidden">
+      <header class="reader-bar paper-bar">
+        <button id="novel-back">← 返回書庫</button>
+        <span id="novel-title" class="reader-title"></span>
+        <div class="spacer"></div>
+        <div class="tts-controls">
+          <select id="tts-voice" class="desktop-only" title="朗讀語音"></select>
+          <label class="ctrl rate-ctrl">
+            語速
+            <input id="tts-rate" type="range" min="0.5" max="2" step="0.1" value="1" />
+            <span id="tts-rate-value" class="rate-value">1.0</span>
+          </label>
+          <button id="btn-tts-play" title="從頭或從點選段落開始朗讀">朗讀</button>
+          <button id="btn-tts-pause">暫停</button>
+          <button id="btn-tts-stop">停止</button>
+        </div>
+        <span class="vr"></span>
+        <button id="novel-font-minus" title="縮小字體">A−</button>
+        <button id="novel-font-plus" title="放大字體">A＋</button>
+        <button id="btn-fullscreen-novel" class="desktop-only" title="全螢幕">全螢幕</button>
+      </header>
+      <main id="novel-scroll" class="novel-scroll">
+        <article id="novel-content" class="novel-content"></article>
+      </main>
+    </div>
+
+    <!-- Android 資料夾選擇對話框 -->
+    <dialog id="folder-dialog">
+      <form method="dialog" id="folder-form">
+        <h3>輸入資料夾路徑</h3>
+        <p class="dialog-sub">需先授予「所有檔案存取權」才能掃描資料夾</p>
+        <div class="preset-row">
+          <button type="button" class="preset" data-path="/storage/emulated/0/Download">Download</button>
+          <button type="button" class="preset" data-path="/storage/emulated/0/Documents">Documents</button>
+          <button type="button" class="preset" data-path="/storage/emulated/0/Books">Books</button>
+          <button type="button" class="preset" data-path="/storage/emulated/0/DCIM">DCIM</button>
+        </div>
+        <input id="folder-input" type="text" placeholder="/storage/emulated/0/…" autocomplete="off" />
+        <div class="dialog-actions">
+          <button type="button" id="folder-browse">瀏覽…</button>
+          <button type="button" id="folder-grant">授權存取</button>
+          <button type="button" id="folder-cancel">取消</button>
+          <button type="submit" class="primary">確定</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- 密碼輸入對話框 -->
+    <dialog id="password-dialog">
+      <form method="dialog" id="password-form">
+        <h3>此壓縮檔需要密碼</h3>
+        <p id="password-archive-name" class="dialog-sub"></p>
+        <input id="password-input" type="text" placeholder="輸入密碼" autocomplete="off" />
+        <label class="ctrl check"><input id="password-save" type="checkbox" checked /> 記住此密碼（加入密碼清單）</label>
+        <p id="password-error" class="error-text hidden">密碼錯誤，請再試一次</p>
+        <div class="dialog-actions">
+          <button value="cancel" type="button" id="password-cancel">取消</button>
+          <button value="ok" type="submit" class="primary">開啟</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- 密碼管理對話框 -->
+    <dialog id="pwmgr-dialog">
+      <h3>密碼清單</h3>
+      <p class="dialog-sub">開啟加密壓縮檔時會自動依序嘗試這些密碼</p>
+      <ul id="pwmgr-list" class="pw-list"></ul>
+      <form id="pwmgr-add-form" class="pw-add">
+        <input id="pwmgr-input" type="text" placeholder="新增密碼" autocomplete="off" />
+        <button type="submit" class="primary">新增</button>
+      </form>
+      <div class="dialog-actions">
+        <button id="pwmgr-close" type="button">關閉</button>
+      </div>
+    </dialog>
+
+    <div id="toast" class="toast hidden"></div>
+  </body>
+</html>
