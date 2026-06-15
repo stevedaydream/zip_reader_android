@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Android / Gradle 建置產物（含行動外掛）
+.gradle/
+**/build/
+.cxx/
+local.properties
+*.jks
+*.keystore
+src-tauri/gen/android/keystore.properties
