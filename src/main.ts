@@ -21,7 +21,7 @@ import { initSources } from "./sources";
 import { initBrowse } from "./browse";
 
 /** Android 更新檢查用：發佈此 app 的 GitHub 儲存庫（owner/repo） */
-const GITHUB_REPO = "YOUR_GITHUB_USERNAME/YOUR_REPO";
+const GITHUB_REPO = "stevedaydream/zip_reader_android";
 
 interface OpenResult {
   entries: string[];

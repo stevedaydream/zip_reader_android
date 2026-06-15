@@ -42,7 +42,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO/releases/latest/download/latest.json"
+        "https://github.com/stevedaydream/zip_reader_android/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJBRjkyMzNDRDNBNDE4NwpSV1NIUVRyTk01S3ZDNnN0UUF4N1lRTnp3R1h2TklYZGt0bWFzd3l5ZEV1YXAxaEU4U25NNzlYbgo="
     }

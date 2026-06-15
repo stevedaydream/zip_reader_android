@@ -62,7 +62,7 @@ capabilities/         default.json（含 androidbridge:default）+ desktop.json�
 
 ## 發佈前待辦
 
-- [ ] src/main.ts 的 `GITHUB_REPO` 改成實際 owner/repo
+- [x] src/main.ts 的 `GITHUB_REPO` = stevedaydream/zip_reader_android（tauri.conf.json updater endpoint 同步）
 - [ ] 產生 keystore + GitHub Secrets：ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS
 - [ ] gen/android/app/build.gradle.kts 加 signingConfig（見 README）
 
