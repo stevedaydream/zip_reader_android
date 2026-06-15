@@ -5,6 +5,7 @@ description = "Default permissions: TTS speak/stop and all-files-access helpers"
 permissions = [
   "allow-speak",
   "allow-stopSpeak",
+  "allow-endTts",
   "allow-hasAllFilesAccess",
   "allow-requestAllFilesAccess",
   "allow-pickFolder",

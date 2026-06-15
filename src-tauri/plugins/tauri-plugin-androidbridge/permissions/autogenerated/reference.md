@@ -6,6 +6,7 @@ Default permissions: TTS speak/stop and all-files-access helpers
 
 - `allow-speak`
 - `allow-stopSpeak`
+- `allow-endTts`
 - `allow-hasAllFilesAccess`
 - `allow-requestAllFilesAccess`
 - `allow-pickFolder`
@@ -20,6 +21,32 @@ Default permissions: TTS speak/stop and all-files-access helpers
 <th>Description</th>
 </tr>
 
+
+<tr>
+<td>
+
+`androidbridge:allow-endTts`
+
+</td>
+<td>
+
+Enables the endTts command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`androidbridge:deny-endTts`
+
+</td>
+<td>
+
+Denies the endTts command without any pre-configured scope.
+
+</td>
+</tr>
 
 <tr>
 <td>

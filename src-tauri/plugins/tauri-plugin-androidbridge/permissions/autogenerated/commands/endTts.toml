@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-endTts"
+description = "Enables the endTts command without any pre-configured scope."
+commands.allow = ["endTts"]
+
+[[permission]]
+identifier = "deny-endTts"
+description = "Denies the endTts command without any pre-configured scope."
+commands.deny = ["endTts"]

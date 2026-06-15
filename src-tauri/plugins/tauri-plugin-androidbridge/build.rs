@@ -1,6 +1,7 @@
 const COMMANDS: &[&str] = &[
     "speak",
     "stopSpeak",
+    "endTts",
     "hasAllFilesAccess",
     "requestAllFilesAccess",
     "pickFolder",

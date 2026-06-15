@@ -389,7 +389,12 @@ function pauseOrResumeTts() {
 function stopTts() {
   ttsActive = false;
   ttsPaused = false;
-  cancelSpeech();
+  if (isAndroid) {
+    // 結束整個朗讀會話：釋放前景服務與 wake lock
+    invoke("plugin:androidbridge|endTts").catch(() => {});
+  } else {
+    window.speechSynthesis.cancel();
+  }
   clearHighlight();
   btnTtsPlay.classList.remove("active");
   btnTtsPause.textContent = "暫停";

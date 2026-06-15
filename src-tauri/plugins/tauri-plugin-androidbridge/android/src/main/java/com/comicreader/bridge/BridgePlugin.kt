@@ -40,24 +40,37 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     private var seq = 0
     private var wakeLock: PowerManager.WakeLock? = null
 
-    /** 取得 partial wake lock，螢幕關閉時 CPU 仍運作，朗讀鏈不中斷 */
-    private fun acquireWake() {
+    /**
+     * 開始朗讀會話：啟動前景服務（豁免 Doze 背景網路，換章不中斷）＋ wake lock。
+     * 只在會話首次呼叫時啟動服務——必由使用者點「朗讀」時觸發（前景），
+     * 避免螢幕關閉時於背景啟動前景服務遭系統拒絕。
+     */
+    private fun beginSession() {
+        if (isTtsActive) return
+        isTtsActive = true
+        val intent = Intent(activity, TtsService::class.java)
+        if (Build.VERSION.SDK_INT >= 26) {
+            activity.startForegroundService(intent)
+        } else {
+            activity.startService(intent)
+        }
         if (wakeLock == null) {
             val pm = activity.getSystemService(Context.POWER_SERVICE) as PowerManager
             wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "comicreader:tts")
             wakeLock?.setReferenceCounted(false)
         }
         if (wakeLock?.isHeld != true) {
-            wakeLock?.acquire(60 * 60 * 1000L) // 最長 1 小時保險，避免洩漏
+            wakeLock?.acquire(2 * 60 * 60 * 1000L) // 最長 2 小時保險，避免洩漏
         }
-        isTtsActive = true
     }
 
-    private fun releaseWake() {
+    /** 結束朗讀會話：停止前景服務 ＋ 釋放 wake lock */
+    private fun endSession() {
         isTtsActive = false
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }
+        activity.stopService(Intent(activity, TtsService::class.java))
     }
 
     override fun load(webView: WebView) {
@@ -94,16 +107,24 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
             invoke.reject("語音引擎尚未就緒")
             return
         }
-        acquireWake()
+        beginSession()
         engine.setSpeechRate(args.rate.coerceIn(0.5f, 2.0f))
         engine.speak(args.text, TextToSpeech.QUEUE_FLUSH, null, "utt-${seq++}")
         invoke.resolve()
     }
 
+    /** 僅中止目前朗讀（換段/換章/暫停用），不結束會話、不釋放前景服務 */
     @Command
     fun stopSpeak(invoke: Invoke) {
         tts?.stop()
-        releaseWake()
+        invoke.resolve()
+    }
+
+    /** 結束朗讀會話（使用者停止或全書讀完）：釋放前景服務與 wake lock */
+    @Command
+    fun endTts(invoke: Invoke) {
+        tts?.stop()
+        endSession()
         invoke.resolve()
     }
 

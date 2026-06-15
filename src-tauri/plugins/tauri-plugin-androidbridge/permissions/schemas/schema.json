@@ -295,6 +295,18 @@
       "type": "string",
       "oneOf": [
         {
+          "description": "Enables the endTts command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-endTts",
+          "markdownDescription": "Enables the endTts command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the endTts command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-endTts",
+          "markdownDescription": "Denies the endTts command without any pre-configured scope."
+        },
+        {
           "description": "Enables the hasAllFilesAccess command without any pre-configured scope.",
           "type": "string",
           "const": "allow-hasAllFilesAccess",
@@ -379,10 +391,10 @@
           "markdownDescription": "Denies the stopSpeak command without any pre-configured scope."
         },
         {
-          "description": "Default permissions: TTS speak/stop and all-files-access helpers\n#### This default permission set includes:\n\n- `allow-speak`\n- `allow-stopSpeak`\n- `allow-hasAllFilesAccess`\n- `allow-requestAllFilesAccess`\n- `allow-pickFolder`\n- `allow-registerListener`\n- `allow-removeListener`",
+          "description": "Default permissions: TTS speak/stop and all-files-access helpers\n#### This default permission set includes:\n\n- `allow-speak`\n- `allow-stopSpeak`\n- `allow-endTts`\n- `allow-hasAllFilesAccess`\n- `allow-requestAllFilesAccess`\n- `allow-pickFolder`\n- `allow-registerListener`\n- `allow-removeListener`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions: TTS speak/stop and all-files-access helpers\n#### This default permission set includes:\n\n- `allow-speak`\n- `allow-stopSpeak`\n- `allow-hasAllFilesAccess`\n- `allow-requestAllFilesAccess`\n- `allow-pickFolder`\n- `allow-registerListener`\n- `allow-removeListener`"
+          "markdownDescription": "Default permissions: TTS speak/stop and all-files-access helpers\n#### This default permission set includes:\n\n- `allow-speak`\n- `allow-stopSpeak`\n- `allow-endTts`\n- `allow-hasAllFilesAccess`\n- `allow-requestAllFilesAccess`\n- `allow-pickFolder`\n- `allow-registerListener`\n- `allow-removeListener`"
         }
       ]
     }

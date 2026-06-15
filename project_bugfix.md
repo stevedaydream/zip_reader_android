@@ -143,3 +143,19 @@ getauxval 符號落在自家 .so 內就是這個徵兆）。正解：只把 `lib
 
 Tauri 的 `app.tauri.plugin.Plugin` 基底類別沒有 Capacitor 風格的生命週期方法，
 `override fun onDetachedFromActivity()` 會報 "overrides nothing"。只能用 `load(webView)`。
+
+## -3. 螢幕關閉換章仍卡住 → 前景服務豁免 Doze（2026-06）
+
+**症狀**（接 -2 之後）：wake lock + WebView keepalive 後，螢幕關閉時 TTS 音訊與
+換段都正常，但**換章仍卡住**。
+
+**原因**：換章與換段唯一差別是換章要發**網路請求**抓下一章。螢幕關閉後 Android
+**Doze** 凍結背景 app 的網路 → fetch 下一章失敗。wake lock 只保 CPU，擋不住 Doze 網路限制。
+
+**解法**：TtsService（mediaPlayback 前景服務）。前景服務狀態使 app 豁免 Doze 網路限制。
+會話生命週期重構：speak=beginSession（首次啟服務，必於使用者點朗讀的前景時機）、
+stopSpeak=僅中止當前朗讀（換段/換章/暫停，不拆服務）、endTts=結束會話（停服務+釋放 wake）。
+避免換章時拆服務又得在背景重啟（背景啟前景服務會被拒）。
+manifest 需 FOREGROUND_SERVICE、FOREGROUND_SERVICE_MEDIA_PLAYBACK、POST_NOTIFICATIONS
+及 <service foregroundServiceType="mediaPlayback">。
+dumpsys 驗證：isForeground=true、types=0x2（MEDIA_PLAYBACK）。

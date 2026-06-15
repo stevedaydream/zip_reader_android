@@ -9,4 +9,15 @@
         android:maxSdkVersion="32" />
     <!-- 朗讀時保持 CPU 運作，螢幕關閉仍能連續換章 -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- 前景服務：豁免 Doze 背景網路限制，螢幕關閉換章不中斷 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <service
+            android:name="com.comicreader.bridge.TtsService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+    </application>
 </manifest>
