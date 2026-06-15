@@ -1,5 +1,23 @@
 # 踩坑紀錄
 
+## -2. 螢幕關閉後 TTS 停止換段/換章（2026-06）
+
+**症狀**：朗讀時關閉螢幕，過一段就停，無法自動換章。
+
+**原因**（兩層）：
+1. wry 的 `WryActivity.onPause()` 會呼叫 `mWebView.onPause()`，暫停 WebView 的
+   JS 執行 → 我們「唸完一段(原生 done 事件)→ JS 抓下一段/下一章 → 再朗讀」的鏈停擺。
+2. 螢幕關閉後 CPU 進入休眠，即使 JS 沒被暫停，計時器與網路也會凍結。
+
+**解法**：
+- BridgePlugin：朗讀時取得 `PARTIAL_WAKE_LOCK`（speak 時 acquire、stopSpeak 時 release，
+  含 1 小時逾時保險），並設 companion `isTtsActive` 旗標。需在外掛 manifest 加 WAKE_LOCK。
+- MainActivity（覆寫 `onWebViewCreate` 取得 webview、覆寫 `onPause`）：
+  `super.onPause()` 後若 `BridgePlugin.isTtsActive` 為真，立即 `webView.onResume()` +
+  `resumeTimers()` 抵銷 wry 的暫停，使 JS 鏈在螢幕關閉時持續。
+- 注意：MainActivity 在 gen/android（已入庫）；app 模組已依賴外掛模組故可 import BridgePlugin。
+- 若長時間螢幕關閉仍受 Doze 影響網路，下一步需改用前景服務（foreground service）。
+
 ## -1. Android 上 reqwest+rustls HTTPS 直接 panic（2026-06）
 
 **症狀**：裝置上抓網路小說時閃退/卡住，logcat：

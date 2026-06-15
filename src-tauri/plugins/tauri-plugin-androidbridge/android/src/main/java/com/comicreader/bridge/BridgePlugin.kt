@@ -1,10 +1,12 @@
 package com.comicreader.bridge
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.PowerManager
 import android.provider.DocumentsContract
 import android.provider.Settings
 import android.speech.tts.TextToSpeech
@@ -27,9 +29,36 @@ class SpeakArgs {
 
 @TauriPlugin
 class BridgePlugin(private val activity: Activity) : Plugin(activity) {
+    companion object {
+        /** 朗讀進行中旗標，供 MainActivity 在螢幕關閉時保持 WebView/JS 存活 */
+        @Volatile
+        var isTtsActive: Boolean = false
+    }
+
     private var tts: TextToSpeech? = null
     private var ready = false
     private var seq = 0
+    private var wakeLock: PowerManager.WakeLock? = null
+
+    /** 取得 partial wake lock，螢幕關閉時 CPU 仍運作，朗讀鏈不中斷 */
+    private fun acquireWake() {
+        if (wakeLock == null) {
+            val pm = activity.getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "comicreader:tts")
+            wakeLock?.setReferenceCounted(false)
+        }
+        if (wakeLock?.isHeld != true) {
+            wakeLock?.acquire(60 * 60 * 1000L) // 最長 1 小時保險，避免洩漏
+        }
+        isTtsActive = true
+    }
+
+    private fun releaseWake() {
+        isTtsActive = false
+        if (wakeLock?.isHeld == true) {
+            wakeLock?.release()
+        }
+    }
 
     override fun load(webView: WebView) {
         super.load(webView)
@@ -65,6 +94,7 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
             invoke.reject("語音引擎尚未就緒")
             return
         }
+        acquireWake()
         engine.setSpeechRate(args.rate.coerceIn(0.5f, 2.0f))
         engine.speak(args.text, TextToSpeech.QUEUE_FLUSH, null, "utt-${seq++}")
         invoke.resolve()
@@ -73,6 +103,7 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     @Command
     fun stopSpeak(invoke: Invoke) {
         tts?.stop()
+        releaseWake()
         invoke.resolve()
     }
 
