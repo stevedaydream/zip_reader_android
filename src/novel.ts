@@ -184,7 +184,9 @@ async function openWebChapter(url: string, bookName?: string | null): Promise<bo
   showToast("正在載入章節…");
   try {
     const ch = await invoke<WebChapter>("fetch_web_chapter", { url });
-    stopTts();
+    // 僅中止當前朗讀（flush），不結束會話——換章時前景服務須持續存活，
+    // 否則 speakFrom 會嘗試在背景重啟前景服務而被系統拒絕（換章後不發聲）。
+    cancelSpeech();
     webMode = true;
     webNextUrl = ch.next_url;
     webPrevUrl = ch.prev_url;
