@@ -63,7 +63,8 @@ body::before {
 
 #app-shell,
 #reader-view,
-#novel-reader-view {
+#novel-reader-view,
+#browse-view {
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -1000,5 +1001,178 @@ body.android .desktop-only {
   body.android .masthead,
   body.android .reader-bar {
     padding-top: calc(10px + env(safe-area-inset-top));
+  }
+}
+
+/* ---------- 網路小說 ---------- */
+.shelf-wrap {
+  padding: 14px 44px 0;
+  flex-shrink: 0;
+}
+
+#webnovel-url {
+  flex: 1;
+  max-width: 520px;
+}
+
+.chapter-next-bottom {
+  display: block;
+  margin: 10px auto 70px;
+  padding: 12px 42px;
+  font-size: 15px;
+  letter-spacing: 0.2em;
+  border-color: var(--ink);
+}
+
+.chapter-next-bottom:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+@media (pointer: coarse) {
+  .shelf-wrap {
+    padding: 10px 18px 0;
+  }
+}
+
+/* ---------- 書源瀏覽器 ---------- */
+#browse-view {
+  background: var(--paper);
+}
+
+.browse-bar {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.browse-bar #browse-search {
+  flex: 1;
+  min-width: 120px;
+  max-width: 360px;
+}
+
+.browse-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 28px 60px;
+}
+
+.browse-loading {
+  text-align: center;
+  color: var(--ink-faint);
+  letter-spacing: 0.2em;
+  padding: 60px 20px;
+}
+
+.browse-section {
+  margin-bottom: 26px;
+}
+
+.browse-h {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  border-bottom: 1px solid var(--hairline);
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+}
+
+/* 分類晶片 */
+.cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cat-chip {
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  padding: 10px 20px;
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--ink);
+}
+
+.cat-chip:hover {
+  border-left-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* 書籍詳情 */
+.book-info {
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-left: 4px solid var(--accent);
+  padding: 18px 20px;
+  margin-bottom: 22px;
+}
+
+.book-info-name {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.book-info-meta {
+  font-family: var(--num);
+  font-style: italic;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+}
+
+.book-info-intro {
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--ink-soft);
+  text-align: justify;
+  max-height: 8.5em;
+  overflow-y: auto;
+}
+
+.book-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+/* 目錄 */
+.toc-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 2px 14px;
+}
+
+.toc-item {
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid var(--hairline-soft);
+  border-radius: 0;
+  padding: 11px 6px;
+  font-size: 14.5px;
+  letter-spacing: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toc-item:hover {
+  background: rgba(174, 74, 46, 0.07);
+  color: var(--accent);
+}
+
+@media (pointer: coarse) {
+  .browse-body {
+    padding: 16px 16px 60px;
+  }
+  .toc-list {
+    grid-template-columns: 1fr;
+  }
+  .browse-bar #browse-search {
+    order: 5;
+    max-width: none;
+    flex-basis: 100%;
   }
 }

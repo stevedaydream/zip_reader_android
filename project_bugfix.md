@@ -1,5 +1,19 @@
 # 踩坑紀錄
 
+## -1. Android 上 reqwest+rustls HTTPS 直接 panic（2026-06）
+
+**症狀**：裝置上抓網路小說時閃退/卡住，logcat：
+`thread 'tokio-rt-worker' panicked ... rustls-platform-verifier ... Expect rustls-platform-verifier to be initialized`。
+
+**原因**：reqwest 0.13 啟用 `rustls` feature 時，若未提供根憑證會用
+`rustls-platform-verifier`，它在 Android 需經 JNI 初始化（讀系統憑證庫），
+未初始化即 panic。reqwest 內部**不會**用 `webpki-roots` feature（查證 reqwest 原始碼確認）。
+
+**解法**（net.rs 共用 client）：用 `use_preconfigured_tls()` 自建 rustls ClientConfig，
+以 `webpki_roots::TLS_SERVER_ROOTS` 灌入 RootCertStore，provider 用 `aws_lc_rs`
+（與 reqwest 一致，已能交叉編譯）。完全繞過 platform verifier，桌面/Android 行為一致。
+直接依賴需對齊 reqwest 鎖定版本：rustls 0.23、webpki-roots 1。
+
 ## 0. .so LOAD 區段需 16KB 對齊（Android 15+，2026-06）
 
 Google Play 要求原生庫支援 16KB page size；未對齊的 .so 在 16KB 分頁裝置上無法載入。
@@ -7,6 +21,15 @@ tauri CLI 會設定 `CARGO_TARGET_*_RUSTFLAGS` 環境變數，導致 `.cargo/con
 的 rustflags 被覆蓋無效 → 正解是在 **src-tauri/build.rs** 對 android 目標發
 `cargo:rustc-link-arg=-Wl,-z,max-page-size=16384`。
 驗證：`llvm-readelf -l libcomic_reader_lib.so`，LOAD 的 Align 應為 0x4000。
+
+## 0a. 網頁小說解析：用 inner_html 評分會被導覽灌水（2026-06）
+
+通用內文抽取若以「元素 inner_html 文字長度」評分挑最大區塊，MediaWiki 等
+站點會選到含側邊欄/工具列的大容器，純文字裡混入「English / 工具 / 编辑」雜訊。
+**解法**（webnovel.rs）：用 ego_tree 樹遍歷 `walk_text`，整段跳過
+NOISE_TAGS（nav/header/footer/aside/script/style/form/button/svg），
+評分改以「跳過雜訊後的純文字字數」。另加 `.mw-parser-output` 等已知容器選擇器。
+注意 ego_tree 要在 Cargo.toml 顯式宣告（scraper 不 re-export），版本對齊 lock。
 
 ## 1. unrar_sys 從 Windows 交叉編譯 Android 失敗（2026-06）
 

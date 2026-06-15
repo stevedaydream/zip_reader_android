@@ -1,8 +1,13 @@
 mod archive;
 mod browser;
 mod ebook;
+mod favorites;
+mod hjwzw;
+mod net;
 mod passwords;
 mod sources;
+mod webnovel;
+mod webshelf;
 
 use base64::Engine;
 use serde::Serialize;
@@ -218,6 +223,129 @@ async fn open_browser(app: AppHandle, url: String, title: String) -> Result<(), 
     browser::open(&app, &url, &title).map_err(CmdError::other)
 }
 
+/// 抓取網路小說章節並解析出純內文與上下章連結
+#[tauri::command]
+async fn fetch_web_chapter(url: String) -> Result<webnovel::WebChapter, CmdError> {
+    webnovel::fetch_chapter(&url).await.map_err(CmdError::other)
+}
+
+#[tauri::command]
+fn get_webnovels(app: AppHandle) -> Vec<webshelf::WebNovel> {
+    webshelf::load(&app)
+}
+
+/// 新增或更新書架項目（以書名為鍵，更新最後閱讀章節網址）
+#[tauri::command]
+fn upsert_webnovel(app: AppHandle, name: String, url: String) -> Result<(), CmdError> {
+    if name.trim().is_empty() || url.trim().is_empty() {
+        return Ok(());
+    }
+    let mut list = webshelf::load(&app);
+    if let Some(item) = list.iter_mut().find(|n| n.name == name) {
+        item.url = url;
+    } else {
+        list.push(webshelf::WebNovel { name, url });
+    }
+    webshelf::save(&app, &list).map_err(CmdError::other)
+}
+
+#[tauri::command]
+fn remove_webnovel(app: AppHandle, name: String) -> Result<(), CmdError> {
+    let mut list = webshelf::load(&app);
+    list.retain(|n| n.name != name);
+    webshelf::save(&app, &list).map_err(CmdError::other)
+}
+
+// ---------- 黃金屋書源 ----------
+#[tauri::command]
+fn hjwzw_categories() -> Vec<hjwzw::Category> {
+    hjwzw::categories()
+}
+
+#[tauri::command]
+async fn hjwzw_book_list(url: String) -> Result<Vec<hjwzw::BookEntry>, CmdError> {
+    hjwzw::book_list(&url).await.map_err(CmdError::other)
+}
+
+#[tauri::command]
+async fn hjwzw_search(keyword: String) -> Result<Vec<hjwzw::BookEntry>, CmdError> {
+    hjwzw::search(&keyword).await.map_err(CmdError::other)
+}
+
+#[tauri::command]
+async fn hjwzw_book_detail(url: String) -> Result<hjwzw::BookDetail, CmdError> {
+    hjwzw::book_detail(&url).await.map_err(CmdError::other)
+}
+
+// ---------- 我的最愛 ----------
+#[tauri::command]
+fn get_favorites(app: AppHandle) -> Vec<favorites::Favorite> {
+    favorites::load(&app)
+}
+
+/// 加入或更新最愛（以 book_url 為鍵）。chapter 欄位用於記錄續讀位置。
+#[tauri::command]
+fn upsert_favorite(
+    app: AppHandle,
+    name: String,
+    author: String,
+    book_url: String,
+    chapter_url: String,
+    chapter_title: String,
+) -> Result<(), CmdError> {
+    if book_url.trim().is_empty() {
+        return Ok(());
+    }
+    let mut list = favorites::load(&app);
+    if let Some(f) = list.iter_mut().find(|f| f.book_url == book_url) {
+        f.name = name;
+        f.author = author;
+        // 只在有提供章節時更新續讀位置
+        if !chapter_url.is_empty() {
+            f.chapter_url = chapter_url;
+            f.chapter_title = chapter_title;
+        }
+    } else {
+        list.push(favorites::Favorite {
+            name,
+            author,
+            book_url,
+            chapter_url,
+            chapter_title,
+        });
+    }
+    favorites::save(&app, &list).map_err(CmdError::other)
+}
+
+/// 僅更新某書的續讀章節（閱讀時呼叫；書不在最愛則略過）
+#[tauri::command]
+fn update_favorite_progress(
+    app: AppHandle,
+    book_url: String,
+    chapter_url: String,
+    chapter_title: String,
+) -> Result<(), CmdError> {
+    let mut list = favorites::load(&app);
+    if let Some(f) = list.iter_mut().find(|f| f.book_url == book_url) {
+        f.chapter_url = chapter_url;
+        f.chapter_title = chapter_title;
+        favorites::save(&app, &list).map_err(CmdError::other)?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn remove_favorite(app: AppHandle, book_url: String) -> Result<(), CmdError> {
+    let mut list = favorites::load(&app);
+    list.retain(|f| f.book_url != book_url);
+    favorites::save(&app, &list).map_err(CmdError::other)
+}
+
+#[tauri::command]
+fn is_favorite(app: AppHandle, book_url: String) -> bool {
+    favorites::load(&app).iter().any(|f| f.book_url == book_url)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -243,7 +371,20 @@ pub fn run() {
             get_sources,
             add_source,
             remove_source,
-            open_browser
+            open_browser,
+            fetch_web_chapter,
+            get_webnovels,
+            upsert_webnovel,
+            remove_webnovel,
+            hjwzw_categories,
+            hjwzw_book_list,
+            hjwzw_search,
+            hjwzw_book_detail,
+            get_favorites,
+            upsert_favorite,
+            update_favorite_progress,
+            remove_favorite,
+            is_favorite
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

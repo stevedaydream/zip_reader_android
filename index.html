@@ -51,8 +51,20 @@
       <!-- 小說書庫 -->
       <section id="novel-view" class="tab-view hidden">
         <div class="folder-row">
+          <span class="folder-label">書源</span>
+          <button id="btn-open-browse" class="primary">瀏覽黃金屋（分類·搜尋·我的最愛）</button>
+        </div>
+        <div class="folder-row">
+          <span class="folder-label">網址</span>
+          <input id="webnovel-url" type="text" placeholder="或貼上任意小說章節網址，自動解析純內文…" autocomplete="off" />
+          <button id="webnovel-go" class="primary">開始閱讀</button>
+        </div>
+        <div id="webnovel-shelf-wrap" class="shelf-wrap hidden">
+          <div id="webnovel-shelf" class="sources-grid"></div>
+        </div>
+        <div class="folder-row">
           <button id="btn-pick-novel-folder" class="primary">選擇資料夾</button>
-          <span class="folder-label">來源</span>
+          <span class="folder-label">本地</span>
           <span id="novel-folder-path" class="folder-path">尚未選擇資料夾</span>
           <div class="spacer"></div>
           <button id="btn-refresh-novels" title="重新整理">重新整理</button>
@@ -102,11 +114,26 @@
       </main>
     </div>
 
+    <!-- 書源瀏覽（黃金屋）：分類 / 搜尋 / 我的最愛 / 書籍目錄 -->
+    <div id="browse-view" class="hidden">
+      <header class="reader-bar paper-bar browse-bar">
+        <button id="browse-back">← 返回</button>
+        <button id="browse-home" title="回書源首頁">首頁</button>
+        <span id="browse-title" class="reader-title"></span>
+        <div class="spacer"></div>
+        <input id="browse-search" type="text" placeholder="搜尋全站小說…" autocomplete="off" />
+        <button id="browse-search-btn" class="primary">搜尋</button>
+      </header>
+      <main id="browse-body" class="browse-body"></main>
+    </div>
+
     <!-- 小說閱讀畫面 -->
     <div id="novel-reader-view" class="hidden">
       <header class="reader-bar paper-bar">
         <button id="novel-back">← 返回書庫</button>
         <span id="novel-title" class="reader-title"></span>
+        <button id="btn-prev-chapter" class="hidden">上一章</button>
+        <button id="btn-next-chapter" class="hidden">下一章</button>
         <div class="spacer"></div>
         <div class="tts-controls">
           <select id="tts-voice" class="desktop-only" title="朗讀語音"></select>
@@ -126,6 +153,7 @@
       </header>
       <main id="novel-scroll" class="novel-scroll">
         <article id="novel-content" class="novel-content"></article>
+        <button id="btn-next-bottom" class="chapter-next-bottom hidden">下一章 →</button>
       </main>
     </div>
 

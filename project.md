@@ -21,11 +21,26 @@ src-tauri/plugins/tauri-plugin-androidbridge/
                       hasAllFilesAccess / requestAllFilesAccess（MANAGE_EXTERNAL_STORAGE）
   android/src/main/AndroidManifest.xml
                       宣告儲存權限（經 manifest merge 併入 app，免手動改 gen）
-src/util.ts           isAndroid 偵測、pickFolderAndroid（路徑輸入對話框）
+src-tauri/src/webnovel.rs
+                      網路小說抓取＋純淨化解析（reqwest + scraper）：
+                      編碼偵測（header/meta/chardetng）、已知內文選擇器＋文字密度備援、
+                      上一章/下一章連結偵測（含單元測試）
+src-tauri/src/webshelf.rs
+                      網路小說書架（webnovels.json：書名→最後閱讀章節網址）
+src-tauri/src/hjwzw.rs
+                      黃金屋書源（tw.hjwzw.com）：分類清單、分類/搜尋書籍列表、
+                      書籍詳情＋完整目錄（/Book/Chapter/{id}）。章節內文沿用 webnovel。
+                      注意：scraper::Html 非 Send，async command 內須在 .await 前解析完並 drop。
+src-tauri/src/favorites.rs
+                      我的最愛（favorites.json：書名/作者/書籍頁/續讀章節）
+src/browse.ts         書源瀏覽器 overlay：分類→書籍列表→詳情（目錄＋收藏）→閱讀；
+                      全站搜尋、我的最愛（點擊從續讀章節接續）
+src/util.ts           isAndroid 偵測、pickFolderAndroid（路徑輸入＋原生 SAF 瀏覽）
 src/main.ts           GITHUB_REPO 常數（Android 更新檢查用，發佈前要改）、
                       更新檢查分流（Android 查 Releases API → openUrl 下載 APK）、觸控滑動翻頁
 src/novel.ts          TTS 雙後端：桌面 speechSynthesis / Android 原生（done 事件推進段落；
-                      暫停→繼續 = 重唸目前段落）
+                      暫停→繼續 = 重唸目前段落）；
+                      網路小說模式（書架、上一/下一章、唸完整章自動接下一章）
 src/sources.ts        Android 用系統瀏覽器開啟（單視窗限制，無廣告阻擋）
 capabilities/         default.json（含 androidbridge:default）+ desktop.json（updater/process 桌面限定）
 .github/workflows/release-android.yml   推 v* tag 建置簽章 APK 上傳 Release
@@ -51,10 +66,12 @@ capabilities/         default.json（含 androidbridge:default）+ desktop.json�
 - [ ] 產生 keystore + GitHub Secrets：ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS
 - [ ] gen/android/app/build.gradle.kts 加 signingConfig（見 README）
 
-## 狀態（2026-06-13）
+## 狀態（2026-06-14）
 
-- 前端 build 通過、桌面 cargo check 通過
+- 前端 build 通過、cargo test 4/4 通過（含 webnovel 解析測試）
 - ✅ Android debug APK 建置成功：
   `src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk`
   （debug 含符號約 143MB，release 會小很多）
+- ✅ 已實裝驗證：啟動無閃退、16KB 對齊、原生資料夾選擇器、TTS
+- 🔲 網路小說功能已完成並建出 APK，待手機重新連線後實裝驗證
 - 環境注意：系統 ANDROID_SDK_ROOT 使用者環境變數曾指錯位置（jbr），建置時需覆寫

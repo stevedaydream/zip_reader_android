@@ -10,6 +10,7 @@ import {
   pickFolderAndroid,
   type FileItem,
 } from "./util";
+import { openBrowse } from "./browse";
 
 // ---------- 元素 ----------
 const novelFolderPath = $("novel-folder-path");
@@ -24,6 +25,18 @@ const ttsRateValue = $("tts-rate-value");
 const btnTtsPlay = $<HTMLButtonElement>("btn-tts-play");
 const btnTtsPause = $<HTMLButtonElement>("btn-tts-pause");
 
+interface WebChapter {
+  title: string;
+  text: string;
+  next_url: string | null;
+  prev_url: string | null;
+}
+
+interface WebNovel {
+  name: string;
+  url: string;
+}
+
 // ---------- 狀態 ----------
 let novelFolder: string | null = localStorage.getItem("novelFolder");
 let fontSize = parseInt(localStorage.getItem("novelFontSize") ?? "19", 10);
@@ -33,6 +46,17 @@ let ttsActive = false;
 let ttsPaused = false;
 let voices: SpeechSynthesisVoice[] = [];
 let appShell: HTMLElement;
+
+// 網路小說模式狀態
+let webMode = false;
+let webBookName: string | null = null;
+let webNextUrl: string | null = null;
+let webPrevUrl: string | null = null;
+let webLoading = false;
+// 書源（黃金屋）閱讀時的書籍上下文，供「我的最愛」記錄續讀位置
+let bookCtx: { name: string; author: string; bookUrl: string } | null = null;
+// 是否從書源瀏覽器進入閱讀（返回時回到書源而非書庫）
+let fromBrowse = false;
 
 export function isNovelReaderOpen(): boolean {
   return !novelReaderView.classList.contains("hidden");
@@ -91,16 +115,9 @@ function renderNovels(items: FileItem[]) {
   });
 }
 
-// ---------- 閱讀 ----------
-async function openNovel(item: FileItem) {
-  let text: string;
-  try {
-    text = await invoke<string>("read_text_file", { path: item.path });
-  } catch (e) {
-    showToast("開啟失敗：" + asCmdError(e).message);
-    return;
-  }
-  novelTitle.textContent = item.name.replace(EXT_RE, "");
+// ---------- 閱讀（本地與網路共用渲染） ----------
+function renderNovelText(title: string, text: string) {
+  novelTitle.textContent = title;
   novelContent.innerHTML = "";
   paragraphs = [];
   const frag = document.createDocumentFragment();
@@ -117,17 +134,132 @@ async function openNovel(item: FileItem) {
   novelContent.appendChild(frag);
   applyFontSize();
   appShell.classList.add("hidden");
+  document.getElementById("browse-view")!.classList.add("hidden");
   novelReaderView.classList.remove("hidden");
   novelScroll.scrollTop = 0;
   ttsPos = 0;
 }
 
+async function openNovel(item: FileItem) {
+  let text: string;
+  try {
+    text = await invoke<string>("read_text_file", { path: item.path });
+  } catch (e) {
+    showToast("開啟失敗：" + asCmdError(e).message);
+    return;
+  }
+  webMode = false;
+  bookCtx = null;
+  updateChapterNav();
+  renderNovelText(item.name.replace(EXT_RE, ""), text);
+}
+
 export function closeNovelReader() {
   stopTts();
   novelReaderView.classList.add("hidden");
-  appShell.classList.remove("hidden");
   novelContent.innerHTML = "";
   paragraphs = [];
+  webMode = false;
+  if (fromBrowse) {
+    // 從書源進來 → 返回書源瀏覽器（首頁會反映最新續讀進度）
+    fromBrowse = false;
+    void openBrowse();
+  } else {
+    appShell.classList.remove("hidden");
+    void renderWebShelf(); // 返回書庫時刷新書架（最後閱讀章節可能已更新）
+  }
+}
+
+// ---------- 網路小說 ----------
+function updateChapterNav() {
+  $("btn-prev-chapter").classList.toggle("hidden", !webMode || !webPrevUrl);
+  $("btn-next-chapter").classList.toggle("hidden", !webMode || !webNextUrl);
+  $("btn-next-bottom").classList.toggle("hidden", !webMode || !webNextUrl);
+}
+
+/** 開啟網路小說章節；bookName 為書架名（首次開啟用章節標題建檔） */
+async function openWebChapter(url: string, bookName?: string | null): Promise<boolean> {
+  if (webLoading) return false;
+  webLoading = true;
+  showToast("正在載入章節…");
+  try {
+    const ch = await invoke<WebChapter>("fetch_web_chapter", { url });
+    stopTts();
+    webMode = true;
+    webNextUrl = ch.next_url;
+    webPrevUrl = ch.prev_url;
+    webBookName = bookName ?? webBookName ?? ch.title ?? url;
+    renderNovelText(ch.title || webBookName, ch.text);
+    updateChapterNav();
+    if (bookCtx) {
+      // 書源閱讀：更新「我的最愛」續讀位置（書不在最愛則後端略過）
+      await invoke("update_favorite_progress", {
+        bookUrl: bookCtx.bookUrl,
+        chapterUrl: url,
+        chapterTitle: ch.title || "",
+      }).catch(() => {});
+    } else {
+      // 一般貼網址閱讀：記到網路書架
+      await invoke("upsert_webnovel", { name: webBookName, url }).catch(() => {});
+    }
+    return true;
+  } catch (e) {
+    showToast("載入失敗：" + asCmdError(e).message);
+    return false;
+  } finally {
+    webLoading = false;
+  }
+}
+
+/**
+ * 從書源開啟章節並進入閱讀（供書源瀏覽器呼叫）。
+ * ctx 提供書籍資訊，閱讀時自動更新最愛續讀進度。
+ */
+export async function openSourceChapter(
+  url: string,
+  ctx: { name: string; author: string; bookUrl: string }
+): Promise<void> {
+  bookCtx = ctx;
+  fromBrowse = true;
+  webBookName = ctx.name;
+  await openWebChapter(url, ctx.name);
+}
+
+async function gotoChapter(url: string | null) {
+  if (!url) return;
+  const wasReading = ttsActive && !ttsPaused;
+  const ok = await openWebChapter(url);
+  if (ok && wasReading) speakFrom(0);
+}
+
+async function renderWebShelf() {
+  const shelf = $("webnovel-shelf");
+  const wrap = $("webnovel-shelf-wrap");
+  const list = await invoke<WebNovel[]>("get_webnovels").catch(() => [] as WebNovel[]);
+  wrap.classList.toggle("hidden", list.length === 0);
+  shelf.innerHTML = "";
+  list.forEach((item, idx) => {
+    const card = document.createElement("button");
+    card.className = "source-card";
+    card.style.setProperty("--i", String(idx));
+    const name = document.createElement("span");
+    name.className = "source-name";
+    name.textContent = item.name;
+    const url = document.createElement("span");
+    url.className = "source-url";
+    url.textContent = item.url;
+    const del = document.createElement("span");
+    del.className = "source-del";
+    del.textContent = "移除";
+    del.addEventListener("click", async (ev) => {
+      ev.stopPropagation();
+      await invoke("remove_webnovel", { name: item.name }).catch(() => {});
+      await renderWebShelf();
+    });
+    card.append(name, url, del);
+    card.addEventListener("click", () => void openWebChapter(item.url, item.name));
+    shelf.appendChild(card);
+  });
 }
 
 function applyFontSize() {
@@ -170,8 +302,17 @@ function clearHighlight() {
 }
 
 function speakCurrent() {
-  if (!ttsActive || ttsPos >= paragraphs.length) {
+  if (!ttsActive) {
     stopTts();
+    return;
+  }
+  if (ttsPos >= paragraphs.length) {
+    // 網路小說：唸完整章自動載入下一章接著唸
+    if (webMode && webNextUrl) {
+      void gotoChapter(webNextUrl);
+    } else {
+      stopTts();
+    }
     return;
   }
   const p = paragraphs[ttsPos];
@@ -261,6 +402,28 @@ export function initNovel(shell: HTMLElement) {
   $("btn-pick-novel-folder").addEventListener("click", pickNovelFolder);
   $("btn-refresh-novels").addEventListener("click", loadNovels);
   $("novel-back").addEventListener("click", closeNovelReader);
+
+  // 網路小說
+  const webnovelUrl = $<HTMLInputElement>("webnovel-url");
+  const startWebNovel = () => {
+    let url = webnovelUrl.value.trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    webBookName = null; // 新書以章節標題建檔
+    bookCtx = null; // 貼網址流程非書源
+    void openWebChapter(url).then((ok) => {
+      if (ok) webnovelUrl.value = "";
+    });
+  };
+  $("webnovel-go").addEventListener("click", startWebNovel);
+  webnovelUrl.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") startWebNovel();
+  });
+  $("btn-open-browse").addEventListener("click", () => void openBrowse());
+  $("btn-prev-chapter").addEventListener("click", () => void gotoChapter(webPrevUrl));
+  $("btn-next-chapter").addEventListener("click", () => void gotoChapter(webNextUrl));
+  $("btn-next-bottom").addEventListener("click", () => void gotoChapter(webNextUrl));
+  void renderWebShelf();
 
   $("novel-font-minus").addEventListener("click", () => {
     fontSize = Math.max(14, fontSize - 1);
