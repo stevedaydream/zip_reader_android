@@ -159,3 +159,27 @@ stopSpeak=僅中止當前朗讀（換段/換章/暫停，不拆服務）、endTt
 manifest 需 FOREGROUND_SERVICE、FOREGROUND_SERVICE_MEDIA_PLAYBACK、POST_NOTIFICATIONS
 及 <service foregroundServiceType="mediaPlayback">。
 dumpsys 驗證：isForeground=true、types=0x2（MEDIA_PLAYBACK）。
+
+## 11. 章節目錄文字被上下裁切（WebView grid 列高，2026-06）
+
+**症狀**：底部章節目錄面板（`.nr-toc-list`）每行中文字只剩上半，下半被切掉。
+
+**原因**：共用的 `.toc-list` 用 `display:grid` + `.toc-item` 的 `overflow:hidden`（為水平省略號）。
+在 Android/BlueStacks WebView 下 grid 的列高被壓到比字身還小，襯線中文字（Noto Serif TC
+字身偏高）就被上下裁。先試加 `line-height` 無效——壓列高的是 grid 不是行高。
+
+**解法**（styles.css）：底部目錄改 **block 排版**覆蓋 grid——`.nr-toc-list{display:block}`、
+`.nr-toc-list .toc-item{display:block;width:100%;min-height:46px;line-height:24px}`（用 px 行高）。
+驗證：BlueStacks 上目錄章節標題完整顯示、目前章高亮定位正常。
+
+## 12. backdrop-filter 毛玻璃不吃 border-radius，閱讀頁變方塊（2026-06）
+
+**症狀**：右下角三色切換懸浮鈕（`.fab-glass` 用 `backdrop-filter` + `border-radius:50%`）
+在純色閱讀背景上顯示成一整塊方形毛玻璃，圓角失效、擋到內文。
+
+**原因**：Android WebView/Chromium 對 `backdrop-filter` 元素的 `border-radius` 裁切有缺陷，
+模糊區會溢出成 bounding box（方形），純色背景上特別明顯。
+
+**解法**（styles.css）：對做毛玻璃那層強制圓形裁切 `clip-path: circle(50%)` + `overflow:hidden`；
+因 clip-path 會連外陰影一起裁掉，故把浮起用的外 `box-shadow` 移到父按鈕（圓形、未被裁），
+玻璃層只留 inset 高光。父層加 `isolation:isolate` 自成堆疊脈絡。三色閱讀模式皆驗證為圓形。

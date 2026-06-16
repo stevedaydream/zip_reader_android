@@ -24,8 +24,75 @@
   --canvas-dim: #968c7a;
   --canvas-hairline: rgba(230, 221, 203, 0.14);
 
+  /* 毛玻璃懸浮鈕（隨主題） */
+  --glass-bg: rgba(250, 246, 236, 0.55);
+  --glass-edge: rgba(47, 42, 34, 0.18);
+  --glass-hi: rgba(255, 255, 255, 0.65);
+
   --serif: "Noto Serif TC", "EB Garamond", "PMingLiU", serif;
   --num: "EB Garamond", "Noto Serif TC", serif;
+}
+
+/* ☀ 和紙（日）為預設 :root。以下為另外兩色模式 */
+
+/* 🌿 護眼（綠豆沙） */
+body[data-theme="green"] {
+  --paper: #cfe3cd;
+  --paper-deep: #c0d8be;
+  --card: #d9ecd6;
+  --ink: #283626;
+  --ink-soft: #54664f;
+  --ink-faint: #87a081;
+  --hairline: rgba(40, 54, 38, 0.18);
+  --hairline-soft: rgba(40, 54, 38, 0.1);
+  --accent: #ab4a2c;
+  --accent-ink: #8c3a20;
+
+  --canvas: #1b241a;
+  --canvas-chrome: #243021;
+  --canvas-fg: #dce9d4;
+  --canvas-dim: #8ba082;
+  --canvas-hairline: rgba(220, 233, 212, 0.14);
+
+  --glass-bg: rgba(217, 236, 214, 0.5);
+  --glass-edge: rgba(40, 54, 38, 0.22);
+  --glass-hi: rgba(255, 255, 255, 0.5);
+}
+
+/* ☾ 夜墨（暖炭夜） */
+body[data-theme="dark"] {
+  --paper: #1b1a16;
+  --paper-deep: #141310;
+  --card: #24221c;
+  --ink: #e7debf;
+  --ink-soft: #a99e88;
+  --ink-faint: #6f6658;
+  --hairline: rgba(231, 222, 191, 0.16);
+  --hairline-soft: rgba(231, 222, 191, 0.08);
+  --accent: #cd6a44;
+  --accent-ink: #dd825b;
+
+  --canvas: #141310;
+  --canvas-chrome: #1f1d18;
+  --canvas-fg: #e7debf;
+  --canvas-dim: #9a8f7c;
+  --canvas-hairline: rgba(231, 222, 191, 0.14);
+
+  --glass-bg: rgba(38, 35, 30, 0.45);
+  --glass-edge: rgba(231, 222, 191, 0.26);
+  --glass-hi: rgba(255, 255, 255, 0.12);
+}
+
+/* 切換色彩模式時，主要畫面背景與文字平滑漸變（避開有 transform 動畫的列） */
+body,
+#app-shell,
+#reader-view,
+#novel-reader-view,
+#browse-view,
+.novel-content,
+.archive-card,
+.source-card {
+  transition: background-color 0.45s ease, color 0.45s ease;
 }
 
 html,
@@ -720,6 +787,348 @@ input[type="range"] {
   margin: 0 4px;
 }
 
+/* ---------- 全 App 底部列拉把（收起時提示上滑叫出） ---------- */
+.bar-handle {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(7px + env(safe-area-inset-bottom, 0px));
+  z-index: 119;
+  width: 46px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(120, 110, 95, 0.55);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+/* 深色閱讀畫布上的拉把用淺色 */
+#reader-view .bar-handle,
+#novel-reader-view.source-mode .bar-handle {
+  background: rgba(230, 221, 203, 0.5);
+}
+/* 底部列展開時隱藏拉把 */
+#reader-view:not(.chrome-hidden) .bar-handle,
+#browse-view:not(.chrome-hidden) .bar-handle,
+#novel-reader-view:not(.chrome-hidden) .bar-handle,
+#app-shell:not(.chrome-hidden) #home-bar-handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- 書源閱讀底部導覽（黃金屋） ---------- */
+/* 非書源模式：書源底部列／目錄面板皆隱藏（改用 paper-bar 當底部列） */
+#novel-reader-view:not(.source-mode) .nr-bottom-bar,
+#novel-reader-view:not(.source-mode) .nr-toc-panel,
+#novel-reader-view:not(.source-mode) .nr-toc-backdrop,
+#novel-reader-view:not(.source-mode) .nr-set-panel,
+#novel-reader-view:not(.source-mode) .nr-set-backdrop {
+  display: none;
+}
+/* 書源模式：隱藏原頂部工具列，改用精簡底部列 */
+#novel-reader-view.source-mode .paper-bar {
+  display: none;
+}
+
+.nr-bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 8px;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--canvas-chrome);
+  border-top: 1px solid var(--canvas-hairline);
+  box-shadow: 0 -8px 24px -12px rgba(0, 0, 0, 0.5);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nr-bottom-bar button {
+  flex: 1;
+  color: var(--canvas-fg);
+  border-color: var(--canvas-hairline);
+  background: transparent;
+  padding: 11px 4px;
+  letter-spacing: 0.08em;
+}
+
+.nr-bottom-bar button:hover:not(:disabled) {
+  border-color: var(--canvas-fg);
+  background: rgba(230, 221, 203, 0.08);
+}
+
+.nr-bottom-bar button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+#nr-tts.active {
+  color: var(--paper);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---------- 各畫面頂部列改置底部、可上滑隱藏 ---------- */
+/* 漫畫閱讀列 / 書源瀏覽列 / 小說閱讀列(非書源 paper-bar) 統一固定於底部 */
+#reader-view .reader-bar,
+#browse-view .browse-bar,
+#novel-reader-view .paper-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  border-bottom: none;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+#reader-view .reader-bar {
+  border-top: 1px solid var(--canvas-hairline);
+  box-shadow: 0 -8px 24px -12px rgba(0, 0, 0, 0.5);
+}
+#browse-view .browse-bar,
+#novel-reader-view .paper-bar {
+  border-top: 1px solid var(--hairline);
+  box-shadow: 0 -8px 24px -12px rgba(47, 42, 34, 0.28);
+}
+/* 收起：往下滑出畫面 */
+#reader-view.chrome-hidden .reader-bar,
+#browse-view.chrome-hidden .browse-bar,
+#novel-reader-view.chrome-hidden .paper-bar,
+#novel-reader-view.chrome-hidden .nr-bottom-bar {
+  transform: translateY(125%);
+}
+
+/* 章節目錄面板（自底部升起） */
+.nr-toc-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 69;
+  background: rgba(34, 31, 27, 0.5);
+}
+
+.nr-toc-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  max-height: 72vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  color: var(--ink);
+  border-top: 3px solid var(--accent);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  box-shadow: 0 -20px 50px -16px rgba(47, 42, 34, 0.5);
+  animation: tocUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes tocUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.nr-toc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--hairline);
+  flex-shrink: 0;
+}
+
+.nr-toc-title {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nr-toc-list {
+  display: block; /* 覆蓋 .toc-list 的 grid：grid 列高在此 WebView 會被壓掉導致文字被裁 */
+  overflow-y: auto;
+  padding: 8px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+}
+
+.nr-toc-list .toc-item {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 46px;
+  line-height: 24px; /* 用 px 行高，確保中文字不被上下裁切 */
+}
+
+.nr-toc-list .toc-item.current {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* 書源閱讀設定面板（語速 / 字體，自底部升起） */
+.nr-set-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  color: var(--ink);
+  border-top: 3px solid var(--accent);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  box-shadow: 0 -20px 50px -16px rgba(47, 42, 34, 0.5);
+  animation: tocUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nr-set-body {
+  padding: 10px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+
+.nr-set-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.nr-set-row:last-child {
+  border-bottom: none;
+}
+
+.nr-set-label {
+  flex-shrink: 0;
+  width: 3em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+
+.nr-set-row input[type="range"] {
+  flex: 1;
+  width: auto;
+}
+
+.nr-set-row #nr-font-value {
+  flex: 1;
+  text-align: center;
+}
+
+/* 預載控制（設定面板內） */
+.nr-set-row.nr-set-col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.nr-set-col .nr-set-label {
+  width: auto;
+}
+.nr-pre-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.nr-pre-controls input[type="number"] {
+  width: 96px;
+  text-align: center;
+}
+.nr-pre-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.nr-pre-text {
+  flex: 1;
+}
+
+/* 預載管理對話框 */
+.pre-retain-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+#pre-book-list .pre-book {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pre-book-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.pre-book-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pre-book-meta {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  font-family: var(--num);
+}
+
+/* ---------- 首頁：主選單與工具列移至底部、可上滑隱藏 ---------- */
+/* 用 flex order 把刊頭與工具列排到底部，書封網格在上方捲動 */
+#app-shell > .masthead {
+  order: 3;
+}
+#app-shell > .tab-view > main {
+  order: 1;
+}
+#app-shell > .tab-view > .folder-row,
+#app-shell > .tab-view > .shelf-wrap {
+  order: 3;
+}
+
+/* 收合動畫（隱藏時高度收為 0，網格補滿） */
+.masthead,
+.folder-row,
+.shelf-wrap {
+  overflow: hidden;
+  transition: max-height 0.32s ease, opacity 0.24s ease, padding 0.32s ease,
+    border-width 0.32s ease, transform 0.32s ease;
+}
+.masthead {
+  max-height: 280px;
+}
+.folder-row {
+  max-height: 140px;
+}
+.shelf-wrap {
+  max-height: 600px;
+}
+#app-shell.chrome-hidden .masthead,
+#app-shell.chrome-hidden .folder-row,
+#app-shell.chrome-hidden .shelf-wrap {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 0;
+  opacity: 0;
+  transform: translateY(12%);
+}
+
 /* ---------- 對話框 ---------- */
 dialog {
   background: var(--card);
@@ -996,11 +1405,149 @@ body.android .desktop-only {
   }
 }
 
-/* 瀏海與系統列安全區 */
+/* 瀏海與系統列安全區（導覽列已移至底部：上方內容避開狀態列、底部刊頭留出手勢區） */
 @supports (padding: env(safe-area-inset-top)) {
-  body.android .masthead,
-  body.android .reader-bar {
-    padding-top: calc(10px + env(safe-area-inset-top));
+  body.android .masthead {
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+  body.android .archive-grid,
+  body.android .sources-wrap,
+  body.android .page-container,
+  body.android .browse-body,
+  body.android .novel-scroll {
+    padding-top: calc(env(safe-area-inset-top) + 8px);
+  }
+}
+
+/* ---------- 三色模式：右下角毛玻璃懸浮鈕 ---------- */
+.theme-fab {
+  position: fixed;
+  right: 18px;
+  bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  z-index: 65; /* 高於底部 navbar(60)，低於目錄/設定面板(70) */
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  isolation: isolate; /* 自成堆疊脈絡，協助 backdrop-filter 正確裁切 */
+  /* 外陰影掛在按鈕（圓形）上，這樣玻璃層可被 clip 成圓而不失浮起陰影 */
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.42);
+  -webkit-tap-highlight-color: transparent;
+  animation: fabIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.theme-fab:hover {
+  background: transparent;
+  transform: translateY(-2px);
+}
+.theme-fab:active {
+  transform: scale(0.9);
+}
+
+/* 玻璃本體 */
+.theme-fab .fab-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  clip-path: circle(50%); /* 強制圓形裁切，避免毛玻璃溢出成方塊 */
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-edge);
+  backdrop-filter: blur(14px) saturate(1.6);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  box-shadow: inset 0 1px 0 var(--glass-hi),
+    inset 0 -8px 16px -10px rgba(0, 0, 0, 0.25);
+  transition: background 0.45s ease, border-color 0.45s ease;
+}
+/* 斜向高光，強化玻璃感 */
+.theme-fab .fab-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(
+    145deg,
+    var(--glass-hi) 0%,
+    transparent 42%,
+    transparent 100%
+  );
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* 圖示（日/綠/夜，依目前模式顯示一個） */
+.theme-fab .fab-glyph {
+  position: relative;
+  z-index: 1;
+  transform: translateY(-3px);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+}
+.theme-fab .fab-glyph svg {
+  grid-area: 1 / 1;
+  width: 23px;
+  height: 23px;
+  display: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+}
+body[data-theme="washi"] .theme-fab .g-sun,
+body:not([data-theme]) .theme-fab .g-sun,
+body[data-theme="green"] .theme-fab .g-leaf,
+body[data-theme="dark"] .theme-fab .g-moon {
+  display: block;
+}
+
+/* 三點模式指示 */
+.theme-fab .fab-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 9px;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+.theme-fab .fab-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+body[data-theme="washi"] .theme-fab .fab-dots i:nth-child(1),
+body:not([data-theme]) .theme-fab .fab-dots i:nth-child(1),
+body[data-theme="green"] .theme-fab .fab-dots i:nth-child(2),
+body[data-theme="dark"] .theme-fab .fab-dots i:nth-child(3) {
+  background: var(--accent);
+  transform: scale(1.35);
+}
+
+/* 點按切換時圖示彈跳 */
+.theme-fab.switching .fab-glyph svg {
+  animation: glyphPop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes fabIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.7);
+  }
+}
+@keyframes glyphPop {
+  0% {
+    transform: rotate(-90deg) scale(0.3);
+    opacity: 0;
+  }
+  100% {
+    transform: rotate(0) scale(1);
+    opacity: 1;
   }
 }
 
@@ -1152,6 +1699,7 @@ body.android .desktop-only {
   border-radius: 0;
   padding: 11px 6px;
   font-size: 14.5px;
+  line-height: 1.8; /* 襯線中文字身較高，需足夠行高否則 overflow:hidden 會裁掉下半 */
   letter-spacing: normal;
   overflow: hidden;
   text-overflow: ellipsis;

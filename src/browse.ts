@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { $, showToast, asCmdError } from "./util";
+import { $, showToast, asCmdError, setupAutoHideBar } from "./util";
 import { openSourceChapter } from "./novel";
 
 interface Category {
@@ -50,6 +50,7 @@ export function setBrowseShell(el: HTMLElement) {
 export function showBrowse() {
   shell?.classList.add("hidden");
   view().classList.remove("hidden");
+  view().classList.remove("chrome-hidden"); // 進入時顯示底部工具列
 }
 
 export function closeBrowse() {
@@ -294,5 +295,15 @@ export function initBrowse(shellEl: HTMLElement) {
   $("browse-search-btn").addEventListener("click", () => void doSearch());
   searchInput().addEventListener("keydown", (ev) => {
     if (ev.key === "Enter") void doSearch();
+  });
+
+  // 底部工具列自動隱藏
+  setupAutoHideBar({
+    onShow: () => view().classList.remove("chrome-hidden"),
+    onHide: () => view().classList.add("chrome-hidden"),
+    scrollEls: [bodyEl()],
+    rootEl: view(),
+    handleEl: $("browse-bar-handle"),
+    isActive: () => !view().classList.contains("hidden"),
   });
 }

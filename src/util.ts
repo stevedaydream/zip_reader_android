@@ -57,6 +57,71 @@ export async function exitFullscreenIfAny(): Promise<boolean> {
   return true;
 }
 
+// ---------- 底部列自動隱藏（全 App 共用） ----------
+/**
+ * 讓某個底部列「捲動內容時收起、從螢幕底部邊緣上滑或點拉把時叫出」。
+ * 不直接改樣式，而是呼叫 onShow/onHide（由呼叫端切換對應 class），
+ * 以同時相容「固定覆蓋式」與「正常流收合式」兩種底部列。
+ */
+export function setupAutoHideBar(opts: {
+  onShow: () => void;
+  onHide: () => void;
+  scrollEls: HTMLElement[];
+  rootEl: HTMLElement;
+  handleEl?: HTMLElement | null;
+  isActive?: () => boolean;
+}) {
+  const { onShow, onHide, scrollEls, rootEl, handleEl, isActive } = opts;
+  const active = () => (isActive ? isActive() : true);
+
+  for (const el of scrollEls) {
+    let prev = 0;
+    el.addEventListener(
+      "scroll",
+      () => {
+        if (!active()) return;
+        const y = el.scrollTop;
+        if (y > prev + 8) onHide(); // 下滑內容 → 收起
+        prev = y < 0 ? 0 : y;
+      },
+      { passive: true }
+    );
+  }
+
+  // 從螢幕底部邊緣上滑 → 叫出
+  let tracking = false;
+  let startY = 0;
+  rootEl.addEventListener(
+    "touchstart",
+    (ev) => {
+      if (!active()) return;
+      const t = ev.touches[0];
+      if (t && t.clientY >= window.innerHeight - 48) {
+        tracking = true;
+        startY = t.clientY;
+      }
+    },
+    { passive: true }
+  );
+  rootEl.addEventListener(
+    "touchmove",
+    (ev) => {
+      if (!tracking) return;
+      const t = ev.touches[0];
+      if (t && startY - t.clientY > 28) {
+        onShow();
+        tracking = false;
+      }
+    },
+    { passive: true }
+  );
+  rootEl.addEventListener("touchend", () => {
+    tracking = false;
+  });
+
+  handleEl?.addEventListener("click", onShow);
+}
+
 // ---------- Android 資料夾選擇（路徑輸入 + 常用位置） ----------
 let folderResolve: ((path: string | null) => void) | null = null;
 

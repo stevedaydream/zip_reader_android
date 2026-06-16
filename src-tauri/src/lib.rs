@@ -5,6 +5,7 @@ mod favorites;
 mod hjwzw;
 mod net;
 mod passwords;
+mod preload;
 mod sources;
 mod webnovel;
 mod webshelf;
@@ -346,6 +347,91 @@ fn is_favorite(app: AppHandle, book_url: String) -> bool {
     favorites::load(&app).iter().any(|f| f.book_url == book_url)
 }
 
+// ---------- 離線預載 ----------
+#[tauri::command]
+fn preload_get_settings(app: AppHandle) -> preload::Settings {
+    preload::get_settings(&app)
+}
+
+#[tauri::command]
+fn preload_set_retain_days(app: AppHandle, days: u32) -> Result<(), CmdError> {
+    preload::set_retain_days(&app, days).map_err(CmdError::other)
+}
+
+#[allow(clippy::too_many_arguments)]
+#[tauri::command]
+fn preload_cache_chapter(
+    app: AppHandle,
+    book_url: String,
+    name: String,
+    author: String,
+    url: String,
+    title: String,
+    text: String,
+    next_url: Option<String>,
+    prev_url: Option<String>,
+) -> Result<(), CmdError> {
+    let chapter = preload::CachedChapter {
+        url,
+        title,
+        text,
+        next_url,
+        prev_url,
+        fetched_at: 0, // cache_chapter 內會蓋上現在時間
+    };
+    preload::cache_chapter(&app, &book_url, &name, &author, chapter).map_err(CmdError::other)
+}
+
+#[tauri::command]
+fn preload_cache_book_detail(
+    app: AppHandle,
+    book_url: String,
+    name: String,
+    author: String,
+    toc: Vec<preload::TocItem>,
+) -> Result<(), CmdError> {
+    preload::cache_book_detail(&app, &book_url, &name, &author, toc).map_err(CmdError::other)
+}
+
+#[tauri::command]
+fn preload_is_cached(app: AppHandle, book_url: String, url: String) -> bool {
+    preload::is_chapter_cached(&app, &book_url, &url)
+}
+
+#[tauri::command]
+fn preload_get_chapter(
+    app: AppHandle,
+    book_url: String,
+    url: String,
+) -> Option<preload::CachedChapter> {
+    preload::get_cached_chapter(&app, &book_url, &url)
+}
+
+#[tauri::command]
+fn preload_get_book_detail(app: AppHandle, book_url: String) -> Option<preload::BookMeta> {
+    preload::get_cached_book_detail(&app, &book_url)
+}
+
+#[tauri::command]
+fn preload_list(app: AppHandle) -> Vec<preload::PreloadBook> {
+    preload::list_preloads(&app)
+}
+
+#[tauri::command]
+fn preload_delete(app: AppHandle, book_url: String) -> Result<(), CmdError> {
+    preload::delete_preload(&app, &book_url).map_err(CmdError::other)
+}
+
+#[tauri::command]
+fn preload_delete_all(app: AppHandle) -> Result<(), CmdError> {
+    preload::delete_all(&app).map_err(CmdError::other)
+}
+
+#[tauri::command]
+fn preload_prune(app: AppHandle) -> u32 {
+    preload::prune_expired(&app)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -384,7 +470,18 @@ pub fn run() {
             upsert_favorite,
             update_favorite_progress,
             remove_favorite,
-            is_favorite
+            is_favorite,
+            preload_get_settings,
+            preload_set_retain_days,
+            preload_cache_chapter,
+            preload_cache_book_detail,
+            preload_is_cached,
+            preload_get_chapter,
+            preload_get_book_detail,
+            preload_list,
+            preload_delete,
+            preload_delete_all,
+            preload_prune
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

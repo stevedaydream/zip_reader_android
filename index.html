@@ -53,6 +53,8 @@
         <div class="folder-row">
           <span class="folder-label">書源</span>
           <button id="btn-open-browse" class="primary">瀏覽黃金屋（分類·搜尋·我的最愛）</button>
+          <div class="spacer"></div>
+          <button id="btn-preload-mgr" title="離線預載管理">離線預載</button>
         </div>
         <div class="folder-row">
           <span class="folder-label">網址</span>
@@ -89,6 +91,9 @@
           </form>
         </main>
       </section>
+
+      <!-- 底部選單收起時的拉把（上滑或點此叫出） -->
+      <div id="home-bar-handle" class="bar-handle" title="上滑或點此叫出選單"></div>
     </div>
 
     <!-- 漫畫閱讀畫面 -->
@@ -112,6 +117,7 @@
         <div id="zone-next" class="nav-zone nav-next" title="下一頁"></div>
         <div id="page-loading" class="page-loading hidden">載入中</div>
       </main>
+      <div id="comic-bar-handle" class="bar-handle" title="上滑或點此叫出工具列"></div>
     </div>
 
     <!-- 書源瀏覽（黃金屋）：分類 / 搜尋 / 我的最愛 / 書籍目錄 -->
@@ -125,6 +131,7 @@
         <button id="browse-search-btn" class="primary">搜尋</button>
       </header>
       <main id="browse-body" class="browse-body"></main>
+      <div id="browse-bar-handle" class="bar-handle" title="上滑或點此叫出工具列"></div>
     </div>
 
     <!-- 小說閱讀畫面 -->
@@ -155,6 +162,62 @@
         <article id="novel-content" class="novel-content"></article>
         <button id="btn-next-bottom" class="chapter-next-bottom hidden">下一章 →</button>
       </main>
+
+      <!-- 書源閱讀底部導覽列（黃金屋）：自動隱藏，從底部邊緣上滑或點拉把叫出 -->
+      <nav id="nr-bottom-bar" class="nr-bottom-bar">
+        <button id="nr-back">返回書庫</button>
+        <button id="nr-prev">上一章</button>
+        <button id="nr-toc">目錄</button>
+        <button id="nr-next">下一章</button>
+        <button id="nr-tts">朗讀</button>
+        <button id="nr-set">設定</button>
+      </nav>
+      <div id="nr-bar-handle" class="bar-handle" title="上滑或點此叫出工具列"></div>
+
+      <!-- 書源章節目錄（自底部升起） -->
+      <div id="nr-toc-backdrop" class="nr-toc-backdrop hidden"></div>
+      <div id="nr-toc-panel" class="nr-toc-panel hidden">
+        <div class="nr-toc-head">
+          <span id="nr-toc-title" class="nr-toc-title">目錄</span>
+          <button id="nr-toc-close">關閉</button>
+        </div>
+        <div id="nr-toc-list" class="toc-list nr-toc-list"></div>
+      </div>
+
+      <!-- 書源閱讀設定（自底部升起）：語速 / 字體 -->
+      <div id="nr-set-backdrop" class="nr-toc-backdrop hidden"></div>
+      <div id="nr-set-panel" class="nr-set-panel hidden">
+        <div class="nr-toc-head">
+          <span class="nr-toc-title">閱讀設定</span>
+          <button id="nr-set-close">關閉</button>
+        </div>
+        <div class="nr-set-body">
+          <div class="nr-set-row">
+            <span class="nr-set-label">語速</span>
+            <input id="nr-rate" type="range" min="0.5" max="2" step="0.1" value="1" />
+            <span id="nr-rate-value" class="rate-value">1.0</span>
+          </div>
+          <div class="nr-set-row">
+            <span class="nr-set-label">字體</span>
+            <button id="nr-font-minus" title="縮小字體">A−</button>
+            <span id="nr-font-value" class="rate-value">19</span>
+            <button id="nr-font-plus" title="放大字體">A＋</button>
+          </div>
+          <div class="nr-set-row nr-set-col">
+            <span class="nr-set-label">離線預載</span>
+            <div class="nr-pre-controls">
+              <button id="nr-pre-50">往後 50 章</button>
+              <button id="nr-pre-100">往後 100 章</button>
+              <input id="nr-pre-custom" type="number" min="1" max="2000" placeholder="自訂章數" />
+              <button id="nr-pre-go" class="primary">預載</button>
+            </div>
+            <div id="nr-pre-status" class="nr-pre-status hidden">
+              <span id="nr-pre-text" class="nr-pre-text"></span>
+              <button id="nr-pre-cancel">取消</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Android 資料夾選擇對話框 -->
@@ -206,6 +269,43 @@
         <button id="pwmgr-close" type="button">關閉</button>
       </div>
     </dialog>
+
+    <!-- 離線預載管理對話框 -->
+    <dialog id="preload-dialog">
+      <h3>離線預載管理</h3>
+      <p class="dialog-sub">已下載的章節可離線閱讀（搭機適用）</p>
+      <div class="pre-retain-row">
+        <label class="ctrl">保留天數
+          <input id="pre-retain" type="number" min="0" max="365" />
+        </label>
+        <span class="folder-note">0＝永久保留；過期自動清除</span>
+      </div>
+      <ul id="pre-book-list" class="pw-list"></ul>
+      <div class="dialog-actions">
+        <button id="pre-clear-all" class="danger" type="button">全部清除</button>
+        <div class="spacer"></div>
+        <button id="pre-close" type="button">關閉</button>
+      </div>
+    </dialog>
+
+    <!-- 三色模式切換：右下角毛玻璃懸浮鈕（浮於底部 navbar 上方） -->
+    <button id="theme-fab" class="theme-fab" type="button" aria-label="切換色彩模式" title="切換色彩模式（和紙 / 護眼 / 夜墨）">
+      <span class="fab-glass"></span>
+      <span class="fab-glyph">
+        <svg class="g-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4.1" />
+          <path d="M12 2.6v2.3M12 19.1v2.3M2.6 12h2.3M19.1 12h2.3M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6" />
+        </svg>
+        <svg class="g-leaf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 4s-9-1.1-14 4c-3 3-3.1 8.1-1 10.2 2.1 2.1 7.2 2 10.2-1C20 12 20 4 20 4z" />
+          <path d="M8 16.5C11 12.5 14.2 9.4 18.3 7.2" />
+        </svg>
+        <svg class="g-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.5 14.8A8.2 8.2 0 0 1 9.3 3.6 7.1 7.1 0 1 0 20.5 14.8z" />
+        </svg>
+      </span>
+      <span class="fab-dots"><i></i><i></i><i></i></span>
+    </button>
 
     <div id="toast" class="toast hidden"></div>
   </body>

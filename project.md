@@ -33,14 +33,32 @@ src-tauri/src/hjwzw.rs
                       注意：scraper::Html 非 Send，async command 內須在 .await 前解析完並 drop。
 src-tauri/src/favorites.rs
                       我的最愛（favorites.json：書名/作者/書籍頁/續讀章節）
+src-tauri/src/preload.rs
+                      離線預載快取：app_data/preload/<bookkey>/meta.json＋ch_*.json
+                      （FNV-1a 雜湊網址當檔名）；全域 settings.json 存保留天數；
+                      指令 preload_* 在 lib.rs（cache/get/list/delete/prune）；
+                      啟動時 preload_prune 清過期（main.ts 呼叫）
 src/browse.ts         書源瀏覽器 overlay：分類→書籍列表→詳情（目錄＋收藏）→閱讀；
-                      全站搜尋、我的最愛（點擊從續讀章節接續）
-src/util.ts           isAndroid 偵測、pickFolderAndroid（路徑輸入＋原生 SAF 瀏覽）
+                      全站搜尋、我的最愛（點擊從續讀章節接續）；底部工具列自動隱藏
+src/util.ts           isAndroid 偵測、pickFolderAndroid（路徑輸入＋原生 SAF 瀏覽）；
+                      setupAutoHideBar（全 App 共用：底部列下滑收起、底部邊緣上滑/點拉把叫出）
 src/main.ts           GITHUB_REPO 常數（Android 更新檢查用，發佈前要改）、
-                      更新檢查分流（Android 查 Releases API → openUrl 下載 APK）、觸控滑動翻頁
+                      更新檢查分流（Android 查 Releases API → openUrl 下載 APK）、觸控滑動翻頁；
+                      所有頂部列改置螢幕底部、自動隱藏（chrome-hidden）：首頁刊頭＋分頁＋工具列
+                      用 flex order 排到底部並收合；漫畫閱讀列固定底部、翻頁時收起；
+                      三色模式（body[data-theme] = washi/green/dark，存 localStorage）：
+                      右下角毛玻璃懸浮鈕循環切換（CSS 變數重定義整個調色盤）
 src/novel.ts          TTS 雙後端：桌面 speechSynthesis / Android 原生（done 事件推進段落；
                       暫停→繼續 = 重唸目前段落）；
-                      網路小說模式（書架、上一/下一章、唸完整章自動接下一章）
+                      網路小說模式（書架、上一/下一章、唸完整章自動接下一章）；
+                      閱讀列一律置底自動隱藏（chrome-hidden 切換）：
+                      非書源用 paper-bar（含語速·字體·朗讀）；書源模式（sourceMode，黃金屋）
+                      改用精簡列 返回書庫/上一章/目錄/下一章/朗讀切換鈕/設定，隱藏 paper-bar；
+                      目錄點 hjwzw_book_detail 升起面板（高亮目前章節，連不上退離線快取目錄）；
+                      設定鈕升起面板放語速滑桿＋字體 A−/A＋（與 paper-bar 控制項同步）；
+                      離線預載：設定面板「往後 50/100/自訂章」逐章抓內文存本地（循序＋延遲、可取消），
+                      閱讀時命中快取即離線讀；小說分頁「離線預載」開管理對話框（列各書/大小/日期、
+                      刪除、全部清除、全域保留天數）
 src/sources.ts        Android 用系統瀏覽器開啟（單視窗限制，無廣告阻擋）
 capabilities/         default.json（含 androidbridge:default）+ desktop.json（updater/process 桌面限定）
 .github/workflows/release-android.yml   推 v* tag 建置簽章 APK 上傳 Release

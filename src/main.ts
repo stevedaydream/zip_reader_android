@@ -14,6 +14,7 @@ import {
   isAndroid,
   initAndroidFolderDialog,
   pickFolderAndroid,
+  setupAutoHideBar,
   type FileItem,
 } from "./util";
 import { initNovel, isNovelReaderOpen } from "./novel";
@@ -69,6 +70,7 @@ function switchTab(name: string) {
   document.querySelectorAll<HTMLButtonElement>(".tab").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.tab === name);
   });
+  appShell.classList.remove("chrome-hidden"); // 切分頁時顯示底部選單
   localStorage.setItem("activeTab", name);
 }
 
@@ -196,6 +198,7 @@ function promptPassword(item: FileItem, wasWrong: boolean) {
 function enterReader() {
   appShell.classList.add("hidden");
   readerView.classList.remove("hidden");
+  readerView.classList.remove("chrome-hidden"); // 進入時顯示工具列
   readerTitle.textContent = currentArchive!.name;
   applyFitMode();
   void showPage(0);
@@ -261,10 +264,13 @@ function nextPage() {
     showToast("已是最後一頁");
     return;
   }
+  readerView.classList.add("chrome-hidden"); // 翻頁時收起工具列，沉浸閱讀
   void showPage(pageIndex + 1);
 }
 
 function prevPage() {
+  if (pageIndex - 1 < 0) return;
+  readerView.classList.add("chrome-hidden");
   void showPage(pageIndex - 1);
 }
 
@@ -480,8 +486,26 @@ document.addEventListener("keydown", async (ev) => {
   }
 });
 
+// ---------- 色彩模式（三色：和紙 washi / 護眼 green / 夜墨 dark） ----------
+const THEMES = ["washi", "green", "dark"];
+function applyTheme(t: string) {
+  document.body.dataset.theme = THEMES.includes(t) ? t : "washi";
+  localStorage.setItem("theme", document.body.dataset.theme!);
+}
+function cycleTheme() {
+  const cur = document.body.dataset.theme ?? "washi";
+  applyTheme(THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length]);
+  themeFab.classList.remove("switching");
+  void themeFab.offsetWidth; // 強制 reflow 以重觸發圖示彈跳動畫
+  themeFab.classList.add("switching");
+}
+const themeFab = $<HTMLButtonElement>("theme-fab");
+themeFab.addEventListener("click", cycleTheme);
+themeFab.addEventListener("animationend", () => themeFab.classList.remove("switching"));
+
 // ---------- 啟動 ----------
 if (isAndroid) document.body.classList.add("android");
+applyTheme(localStorage.getItem("theme") ?? "washi");
 initAndroidFolderDialog();
 const savedInterval = localStorage.getItem("autoInterval");
 if (savedInterval) autoIntervalInput.value = savedInterval;
@@ -490,4 +514,25 @@ if (currentFolder) void loadLibrary();
 initNovel(appShell);
 initSources();
 initBrowse(appShell);
+
+// 底部列自動隱藏：首頁（主選單＋工具列）與漫畫閱讀器
+const sourcesWrapEl = document.querySelector<HTMLElement>(".sources-wrap")!;
+setupAutoHideBar({
+  onShow: () => appShell.classList.remove("chrome-hidden"),
+  onHide: () => appShell.classList.add("chrome-hidden"),
+  scrollEls: [archiveGrid, $("novel-grid"), sourcesWrapEl],
+  rootEl: appShell,
+  handleEl: $("home-bar-handle"),
+  isActive: () => !appShell.classList.contains("hidden"),
+});
+setupAutoHideBar({
+  onShow: () => readerView.classList.remove("chrome-hidden"),
+  onHide: () => readerView.classList.add("chrome-hidden"),
+  scrollEls: [pageContainer],
+  rootEl: readerView,
+  handleEl: $("comic-bar-handle"),
+  isActive: () => !readerView.classList.contains("hidden"),
+});
+
 void doCheckUpdate(true);
+void invoke("preload_prune").catch(() => {}); // 啟動時清除過期離線快取
