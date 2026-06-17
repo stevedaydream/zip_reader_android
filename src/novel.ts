@@ -91,6 +91,14 @@ let webCurrentUrl: string | null = null;
 let tocLoading = false;
 let preloading = false;
 let preloadCancel = false;
+// 閱讀互動模式："scroll"（自由捲動）｜"tap"（點按翻頁）
+let readMode = localStorage.getItem("novelReadMode") ?? "scroll";
+// 自動翻頁（僅翻頁模式）
+let autoPageOn = false;
+let autoPageTimer: number | null = null;
+let autoPageDelayTimer: number | null = null;
+let isDelayingAutoPage = false;
+let autoPageSec = Math.min(5, Math.max(1, parseFloat(localStorage.getItem("novelAutoPageSec") ?? "3") || 3));
 
 export function isNovelReaderOpen(): boolean {
   return !novelReaderView.classList.contains("hidden");
@@ -161,7 +169,8 @@ function renderNovelText(title: string, text: string) {
     const p = document.createElement("p");
     p.textContent = line;
     const idx = paragraphs.length;
-    p.addEventListener("click", () => speakFrom(idx));
+    // 桌面（滑鼠）維持單擊朗讀；觸控改長按（見 setupReadingGestures），避免滑動誤觸
+    if (!isAndroid) p.addEventListener("click", () => speakFrom(idx));
     paragraphs.push(p);
     frag.appendChild(p);
   }
@@ -193,6 +202,7 @@ async function openNovel(item: FileItem) {
 
 export function closeNovelReader() {
   stopTts();
+  stopAutoPage();
   closeToc();
   closeSettings();
   novelReaderView.classList.add("hidden");
@@ -286,11 +296,267 @@ export async function openSourceChapter(
 }
 
 // ---------- 底部導覽列（書源精簡列 / 非書源 paper-bar 共用顯隱） ----------
+function triggerAutoPageDelay() {
+  if (isDelayingAutoPage) return; // 已經在延遲中，不重複處理
+  isDelayingAutoPage = true;
+
+  // 暫停目前的自動翻頁定時器
+  if (autoPageTimer !== null) {
+    clearInterval(autoPageTimer);
+    autoPageTimer = null;
+  }
+
+  // 顯示 "停止翻頁" 按鈕
+  const stopBtn = document.getElementById("nr-auto-stop");
+  if (stopBtn) {
+    stopBtn.classList.remove("hidden");
+  }
+
+  let delayCount = 5;
+  const t = document.getElementById("nr-auto-toggle");
+  if (t) {
+    t.textContent = `繼續翻頁 (${delayCount}s)`;
+    t.classList.add("active");
+  }
+
+  // 設定每秒倒數的定時器
+  if (autoPageDelayTimer !== null) {
+    clearInterval(autoPageDelayTimer);
+  }
+  autoPageDelayTimer = window.setInterval(() => {
+    delayCount--;
+    if (delayCount > 0) {
+      if (t) {
+        t.textContent = `繼續翻頁 (${delayCount}s)`;
+      }
+    } else {
+      if (autoPageDelayTimer !== null) {
+        clearInterval(autoPageDelayTimer);
+        autoPageDelayTimer = null;
+      }
+      isDelayingAutoPage = false;
+      
+      if (autoPageOn) {
+        startAutoPage(); // 倒數結束，恢復自動翻頁
+        closeSettings(); // 收起設定面板
+        hideBottomBar(); // 重新自動隱藏底部列
+      }
+    }
+  }, 1000);
+}
+
 function showBottomBar() {
   novelReaderView.classList.remove("chrome-hidden");
+  if (autoPageOn) {
+    triggerAutoPageDelay();
+  }
 }
 function hideBottomBar() {
   novelReaderView.classList.add("chrome-hidden");
+}
+function toggleBottomBar() {
+  const willShow = novelReaderView.classList.contains("chrome-hidden");
+  novelReaderView.classList.toggle("chrome-hidden");
+  if (willShow && autoPageOn) {
+    triggerAutoPageDelay();
+  }
+}
+/** 翻頁時短暫標示邊界段落（下一頁＝離開頁的最後一段；上一頁＝頂部第一段），翻完淡出 */
+function markBoundaryParagraph(dir: number) {
+  const vb = novelScroll.getBoundingClientRect();
+  let target: HTMLElement | null = null;
+  if (dir > 0) {
+    // 下一頁：取「起點仍在畫面內」的最後一段（底部邊界），翻頁後它會落在新頁上方
+    for (const p of paragraphs) {
+      if (p.getBoundingClientRect().top < vb.bottom - 4) target = p;
+      else break;
+    }
+  } else {
+    // 上一頁：取第一個「底部仍在畫面內」的段落（頂部邊界）
+    for (const p of paragraphs) {
+      if (p.getBoundingClientRect().bottom > vb.top + 4) {
+        target = p;
+        break;
+      }
+    }
+  }
+  if (!target) return;
+  novelContent.querySelectorAll("p.page-mark").forEach((el) => el.classList.remove("page-mark"));
+  const el = target;
+  void el.offsetWidth; // 重觸發動畫
+  el.classList.add("page-mark");
+  window.setTimeout(() => el.classList.remove("page-mark"), 1500);
+}
+
+/** 平滑捲動約一個螢幕（dir=1 下一頁、-1 上一頁） */
+function pageScroll(dir: number) {
+  markBoundaryParagraph(dir);
+  novelScroll.scrollBy({ top: dir * novelScroll.clientHeight * 0.85, behavior: "smooth" });
+}
+
+/**
+ * 觸控閱讀手勢（Android）：
+ *  - 長按段落 ~0.45s → 從該段朗讀（取代單擊，避免滑動誤觸）
+ *  - 點擊（無位移）：捲動模式→切底部列；點按翻頁模式→右下頁/左上頁/中切底部列
+ *  - 有位移＝正常捲動，不攔截
+ */
+function setupReadingGestures() {
+  let startX = 0;
+  let startY = 0;
+  let startT = 0;
+  let moved = false;
+  let lpTimer: number | null = null;
+  const clearLP = () => {
+    if (lpTimer !== null) {
+      clearTimeout(lpTimer);
+      lpTimer = null;
+    }
+  };
+  novelScroll.addEventListener(
+    "touchstart",
+    (e) => {
+      const t = e.touches[0];
+      if (!t) return;
+      startX = t.clientX;
+      startY = t.clientY;
+      startT = Date.now();
+      moved = false;
+      clearLP();
+      lpTimer = window.setTimeout(() => {
+        lpTimer = null;
+        if (moved) return;
+        const el = document.elementFromPoint(startX, startY);
+        const p = el?.closest("p");
+        if (p) {
+          const idx = paragraphs.indexOf(p as HTMLParagraphElement);
+          if (idx >= 0) speakFrom(idx);
+        }
+      }, 450);
+    },
+    { passive: true }
+  );
+  novelScroll.addEventListener(
+    "touchmove",
+    (e) => {
+      const t = e.touches[0];
+      if (!t) return;
+      if (Math.abs(t.clientX - startX) > 10 || Math.abs(t.clientY - startY) > 10) {
+        moved = true;
+        clearLP();
+      }
+    },
+    { passive: true }
+  );
+  novelScroll.addEventListener("touchend", (e) => {
+    clearLP();
+    if (moved || Date.now() - startT >= 450) return; // 位移或長按已處理
+    const x = e.changedTouches[0]?.clientX ?? startX;
+    const w = window.innerWidth;
+    if (readMode === "tap") {
+      if (x > w * 0.6) pageScroll(1);
+      else if (x < w * 0.3) pageScroll(-1);
+      else toggleBottomBar();
+    } else {
+      toggleBottomBar();
+    }
+  });
+}
+
+function applyReadModeUI() {
+  const tap = readMode === "tap";
+  const btn = $("nr-mode-toggle");
+  btn.textContent = tap ? "翻頁模式" : "捲動模式";
+  btn.classList.toggle("active", tap);
+  $("nr-auto-wrap").classList.toggle("hidden", !tap);
+}
+function setReadMode(mode: string) {
+  readMode = mode;
+  localStorage.setItem("novelReadMode", mode);
+  if (mode !== "tap") stopAutoPage(); // 離開翻頁模式 → 停自動翻頁
+  applyReadModeUI();
+}
+function toggleReadMode() {
+  setReadMode(readMode === "tap" ? "scroll" : "tap");
+}
+
+// ---------- 自動翻頁（翻頁模式專用） ----------
+function startAutoPage() {
+  stopAutoPage();
+  autoPageOn = true;
+  const t = $("nr-auto-toggle");
+  t.classList.add("active");
+  t.textContent = "停止自動";
+  autoPageTimer = window.setInterval(autoPageTick, autoPageSec * 1000);
+}
+function stopAutoPage() {
+  autoPageOn = false;
+  isDelayingAutoPage = false;
+  if (autoPageTimer !== null) {
+    clearInterval(autoPageTimer);
+    autoPageTimer = null;
+  }
+  if (autoPageDelayTimer !== null) {
+    clearInterval(autoPageDelayTimer);
+    autoPageDelayTimer = null;
+  }
+  const t = document.getElementById("nr-auto-toggle");
+  if (t) {
+    t.classList.remove("active");
+    t.textContent = "自動翻頁";
+  }
+  const stopBtn = document.getElementById("nr-auto-stop");
+  if (stopBtn) {
+    stopBtn.classList.add("hidden");
+  }
+  showBottomBar(); // 停止自動翻頁時還原顯示 navbar
+}
+function toggleAutoPage() {
+  if (isDelayingAutoPage) {
+    // 期間點擊「繼續翻頁」
+    if (autoPageDelayTimer !== null) {
+      clearInterval(autoPageDelayTimer);
+      autoPageDelayTimer = null;
+    }
+    isDelayingAutoPage = false;
+    startAutoPage();
+    const t = document.getElementById("nr-auto-toggle");
+    if (t) {
+      t.textContent = "繼續翻頁";
+      t.classList.add("active");
+    }
+    const stopBtn = document.getElementById("nr-auto-stop");
+    if (stopBtn) {
+      stopBtn.classList.remove("hidden");
+    }
+  } else if (autoPageOn) {
+    stopAutoPage();
+  } else {
+    startAutoPage();
+    closeSettings(); // 收起設定面板
+    hideBottomBar(); // 自動隱藏底部列，清爽閱讀
+  }
+}
+function autoPageTick() {
+  if (!isNovelReaderOpen() || readMode !== "tap") {
+    stopAutoPage();
+    return;
+  }
+  // 已到章末：書源有下一章就自動接續，否則停止
+  if (novelScroll.scrollTop + novelScroll.clientHeight >= novelScroll.scrollHeight - 8) {
+    if (webMode && webNextUrl) void gotoChapter(webNextUrl);
+    else {
+      stopAutoPage();
+      showToast("已到結尾");
+    }
+    return;
+  }
+  pageScroll(1);
+}
+function setAutoSec(sec: number) {
+  autoPageSec = Math.min(5, Math.max(1, sec));
+  localStorage.setItem("novelAutoPageSec", String(autoPageSec));
+  $("nr-auto-rate-value").textContent = autoPageSec.toFixed(1) + "s";
+  if (autoPageOn) startAutoPage(); // 以新速度重啟計時
 }
 
 /** 單一朗讀切換鈕：朗讀中→停止，否則從目前段落開始 */
@@ -305,6 +571,7 @@ function openSettings() {
   $<HTMLInputElement>("nr-rate").value = ttsRateInput.value;
   $("nr-rate-value").textContent = currentRate().toFixed(1);
   $("nr-font-value").textContent = String(fontSize);
+  applyReadModeUI(); // 反映目前翻頁模式與自動翻頁控制顯隱
   $("nr-set-backdrop").classList.remove("hidden");
   $("nr-set-panel").classList.remove("hidden");
 }
@@ -373,7 +640,12 @@ async function openToc() {
       frag.appendChild(item);
     }
     listEl.appendChild(frag);
-    currentItem?.scrollIntoView({ block: "center" });
+    if (currentItem) {
+      const targetEl = currentItem;
+      setTimeout(() => {
+        targetEl.scrollIntoView({ block: "start", behavior: "smooth" });
+      }, 100);
+    }
   } catch (e) {
     listEl.innerHTML = `<p class="browse-loading">載入失敗：${asCmdError(e).message}</p>`;
   } finally {
@@ -762,6 +1034,20 @@ export function initNovel(shell: HTMLElement) {
     fontSize = Math.min(30, fontSize + 1);
     applyFontSize();
   });
+
+  // 閱讀模式：單鈕切換 捲動／翻頁
+  $("nr-mode-toggle").addEventListener("click", toggleReadMode);
+  $("nr-auto-toggle").addEventListener("click", toggleAutoPage);
+  $("nr-auto-stop").addEventListener("click", stopAutoPage);
+  const autoRate = $<HTMLInputElement>("nr-auto-rate");
+  autoRate.value = String(autoPageSec);
+  $("nr-auto-rate-value").textContent = autoPageSec.toFixed(1) + "s";
+  autoRate.addEventListener("input", () => {
+    $("nr-auto-rate-value").textContent = (parseFloat(autoRate.value) || 3).toFixed(1) + "s";
+  });
+  autoRate.addEventListener("change", () => setAutoSec(parseFloat(autoRate.value) || 3));
+  applyReadModeUI();
+  if (isAndroid) setupReadingGestures();
 
   // 預載（本書，設定面板內）
   $("nr-pre-50").addEventListener("click", () => void runPreload(50));
