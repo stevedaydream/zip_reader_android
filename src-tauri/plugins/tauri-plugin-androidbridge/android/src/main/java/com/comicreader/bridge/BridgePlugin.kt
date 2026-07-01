@@ -18,6 +18,7 @@ import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
+import app.tauri.plugin.JSArray
 import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
 
@@ -25,11 +26,18 @@ import app.tauri.plugin.Plugin
 class SpeakArgs {
     var text: String = ""
     var rate: Float = 1.0f
+    var voice: String = ""
 }
 
 @InvokeArg
 class UpdatePlaybackArgs {
     var playing: Boolean = true
+    var title: String = ""
+}
+
+@InvokeArg
+class SetEngineArgs {
+    var engine: String = ""
 }
 
 @TauriPlugin
@@ -42,6 +50,10 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
         /** 目前是否正在朗讀（false = 已暫停），供 widget 重繪時取用 */
         @Volatile
         var isPlaying: Boolean = false
+
+        /** 目前朗讀章節標題，供 widget/通知顯示 */
+        @Volatile
+        var currentTitle: String = ""
 
         @Volatile
         private var instance: BridgePlugin? = null
@@ -77,7 +89,7 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
         if (isTtsActive) return
         isTtsActive = true
         isPlaying = true
-        NovelWidgetProvider.render(activity, playing = true, active = true)
+        NovelWidgetProvider.render(activity, playing = true, active = true, title = currentTitle)
         val intent = Intent(activity, TtsService::class.java)
         if (Build.VERSION.SDK_INT >= 26) {
             activity.startForegroundService(intent)
@@ -98,37 +110,53 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     private fun endSession() {
         isTtsActive = false
         isPlaying = false
-        NovelWidgetProvider.render(activity, playing = false, active = false)
+        currentTitle = ""
+        NovelWidgetProvider.render(activity, playing = false, active = false, title = "")
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }
         activity.stopService(Intent(activity, TtsService::class.java))
     }
 
+    /** 唸完/失敗回報 JS（推進段落）；重建引擎時重複掛用 */
+    private val progressListener = object : UtteranceProgressListener() {
+        override fun onStart(utteranceId: String?) {}
+
+        override fun onDone(utteranceId: String?) {
+            trigger("done", JSObject())
+        }
+
+        @Deprecated("Deprecated in Java")
+        override fun onError(utteranceId: String?) {
+            trigger("error", JSObject())
+        }
+
+        override fun onError(utteranceId: String?, errorCode: Int) {
+            trigger("error", JSObject())
+        }
+    }
+
+    /** 建立／重建 TextToSpeech（engine 為空用系統預設）；就緒後掛進度監聽並回呼 */
+    private fun initTts(engine: String?, done: ((Boolean) -> Unit)?) {
+        tts?.shutdown()
+        ready = false
+        val listener = TextToSpeech.OnInitListener { status ->
+            ready = status == TextToSpeech.SUCCESS
+            if (ready) tts?.setOnUtteranceProgressListener(progressListener)
+            done?.invoke(ready)
+        }
+        tts = if (engine.isNullOrBlank()) {
+            TextToSpeech(activity, listener)
+        } else {
+            TextToSpeech(activity, listener, engine)
+        }
+    }
+
     override fun load(webView: WebView) {
         super.load(webView)
         instance = this
-        tts = TextToSpeech(activity) { status ->
-            ready = status == TextToSpeech.SUCCESS
-            if (ready) {
-                tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {}
-
-                    override fun onDone(utteranceId: String?) {
-                        trigger("done", JSObject())
-                    }
-
-                    @Deprecated("Deprecated in Java")
-                    override fun onError(utteranceId: String?) {
-                        trigger("error", JSObject())
-                    }
-
-                    override fun onError(utteranceId: String?, errorCode: Int) {
-                        trigger("error", JSObject())
-                    }
-                })
-            }
-        }
+        // 就緒後發 "ttsReady" 事件，讓前端填入語音/引擎清單
+        initTts(null) { ok -> if (ok) trigger("ttsReady", JSObject()) }
     }
 
     /** 以指定語速朗讀一段文字；唸完觸發 "done" 事件 */
@@ -141,9 +169,59 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
             return
         }
         beginSession()
+        if (args.voice.isNotBlank()) {
+            engine.voices?.firstOrNull { it.name == args.voice }?.let { engine.setVoice(it) }
+        }
         engine.setSpeechRate(args.rate.coerceIn(0.5f, 2.0f))
         engine.speak(args.text, TextToSpeech.QUEUE_FLUSH, null, "utt-${seq++}")
         invoke.resolve()
+    }
+
+    /** 列出目前引擎的中文語音（zh-*），供前端選擇 */
+    @Command
+    fun listVoices(invoke: Invoke) {
+        val arr = JSArray()
+        tts?.voices
+            ?.filter { it.locale?.language.equals("zh", ignoreCase = true) }
+            ?.sortedBy { it.name }
+            ?.forEach { v ->
+                val o = JSObject()
+                o.put("name", v.name)
+                o.put("locale", v.locale?.toLanguageTag() ?: "")
+                o.put("quality", v.quality)
+                o.put("networkRequired", v.isNetworkConnectionRequired)
+                arr.put(o)
+            }
+        val ret = JSObject()
+        ret.put("voices", arr)
+        invoke.resolve(ret)
+    }
+
+    /** 列出已安裝的 TTS 引擎，含目前預設引擎的套件名 */
+    @Command
+    fun listEngines(invoke: Invoke) {
+        val arr = JSArray()
+        tts?.engines?.forEach { e ->
+            val o = JSObject()
+            o.put("name", e.name) // 套件名
+            o.put("label", e.label)
+            arr.put(o)
+        }
+        val ret = JSObject()
+        ret.put("engines", arr)
+        ret.put("current", tts?.defaultEngine ?: "")
+        invoke.resolve(ret)
+    }
+
+    /** 切換 TTS 引擎並重建；就緒後回傳 {ready}（前端據此重載語音清單） */
+    @Command
+    fun setEngine(invoke: Invoke) {
+        val args = invoke.parseArgs(SetEngineArgs::class.java)
+        initTts(args.engine) { ok ->
+            val ret = JSObject()
+            ret.put("ready", ok)
+            invoke.resolve(ret)
+        }
     }
 
     /** 僅中止目前朗讀（換段/換章/暫停用），不結束會話、不釋放前景服務 */
@@ -170,11 +248,13 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
         val args = invoke.parseArgs(UpdatePlaybackArgs::class.java)
         if (isTtsActive) {
             isPlaying = args.playing
+            currentTitle = args.title
             val intent = Intent(activity, TtsService::class.java)
                 .setAction(TtsService.ACTION_UPDATE)
                 .putExtra(TtsService.EXTRA_PLAYING, args.playing)
+                .putExtra(TtsService.EXTRA_TITLE, args.title)
             activity.startService(intent)
-            NovelWidgetProvider.render(activity, playing = args.playing, active = true)
+            NovelWidgetProvider.render(activity, playing = args.playing, active = true, title = args.title)
         }
         invoke.resolve()
     }

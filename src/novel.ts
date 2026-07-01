@@ -21,6 +21,8 @@ const novelTitle = $("novel-title");
 const novelScroll = $("novel-scroll");
 const novelContent = $("novel-content");
 const ttsVoiceSelect = $<HTMLSelectElement>("tts-voice");
+const nrEngineSelect = $<HTMLSelectElement>("nr-engine");
+const nrVoiceSelect = $<HTMLSelectElement>("nr-voice");
 const ttsRateInput = $<HTMLInputElement>("tts-rate");
 const ttsRateValue = $("tts-rate-value");
 const btnTtsPlay = $<HTMLButtonElement>("btn-tts-play");
@@ -885,7 +887,11 @@ function speakCurrent() {
 
   if (isAndroid) {
     // 原生 TextToSpeech：唸完由外掛 "done" 事件推進下一段
-    invoke("plugin:androidbridge|speak", { text, rate: currentRate() }).catch((e) => {
+    invoke("plugin:androidbridge|speak", {
+      text,
+      rate: currentRate(),
+      voice: nrVoiceSelect.value,
+    }).catch((e) => {
       showToast("朗讀失敗：" + String(e));
       stopTts();
     });
@@ -915,9 +921,72 @@ function cancelSpeech() {
   }
 }
 
-/** 回報播放狀態給原生：同步通知列與桌面 widget 的「暫停/繼續」外觀 */
+/** 回報播放狀態＋目前章節給原生：同步通知列與桌面 widget（暫停/繼續、朗讀中＋章節） */
 function reportPlayback(playing: boolean) {
-  if (isAndroid) invoke("plugin:androidbridge|updatePlayback", { playing }).catch(() => {});
+  if (isAndroid)
+    invoke("plugin:androidbridge|updatePlayback", {
+      playing,
+      title: novelTitle.textContent ?? "",
+    }).catch(() => {});
+}
+
+// ---------- Android 原生 TTS：引擎／語音選擇 ----------
+interface NativeVoice {
+  name: string;
+  locale: string;
+  quality: number;
+  networkRequired: boolean;
+}
+interface NativeEngine {
+  name: string;
+  label: string;
+}
+
+/** 列出已安裝引擎並選定（已存的優先）；若存的非目前預設則實際切過去 */
+async function refreshNativeEngines() {
+  try {
+    const r = await invoke<{ engines: NativeEngine[]; current: string }>(
+      "plugin:androidbridge|listEngines",
+    );
+    const saved = localStorage.getItem("ttsEngine");
+    const target = saved || r.current;
+    nrEngineSelect.innerHTML = "";
+    for (const e of r.engines) {
+      const opt = document.createElement("option");
+      opt.value = e.name;
+      opt.textContent = e.label || e.name;
+      if (e.name === target) opt.selected = true;
+      nrEngineSelect.appendChild(opt);
+    }
+    if (saved && saved !== r.current) {
+      await invoke("plugin:androidbridge|setEngine", { engine: saved }).catch(() => {});
+    }
+  } catch {
+    /* 取不到引擎資訊：忽略 */
+  }
+}
+
+/** 列出目前引擎的中文語音（第一項為系統預設） */
+async function refreshNativeVoices() {
+  try {
+    const r = await invoke<{ voices: NativeVoice[] }>("plugin:androidbridge|listVoices");
+    const saved = localStorage.getItem("ttsVoiceAndroid");
+    nrVoiceSelect.innerHTML = "";
+    const def = document.createElement("option");
+    def.value = "";
+    def.textContent = "（系統預設）";
+    nrVoiceSelect.appendChild(def);
+    r.voices.forEach((v, i) => {
+      const opt = document.createElement("option");
+      opt.value = v.name;
+      opt.textContent = `語音 ${i + 1}（${v.locale}${v.networkRequired ? " 🌐" : ""}）`;
+      opt.title = v.name;
+      if (v.name === saved) opt.selected = true;
+      nrVoiceSelect.appendChild(opt);
+    });
+  } catch {
+    /* 取不到語音：忽略 */
+  }
 }
 
 function speakFrom(index: number) {
@@ -1144,6 +1213,23 @@ export function initNovel(shell: HTMLElement) {
           stopTts();
           break;
       }
+    });
+    // 原生 TTS 就緒後填入引擎／語音清單
+    void addPluginListener("androidbridge", "ttsReady", () => {
+      void refreshNativeEngines().then(refreshNativeVoices);
+    });
+    // 切換引擎：重建後重載語音；朗讀中則以新引擎重唸
+    nrEngineSelect.addEventListener("change", async () => {
+      localStorage.setItem("ttsEngine", nrEngineSelect.value);
+      const wasReading = ttsActive && !ttsPaused;
+      await invoke("plugin:androidbridge|setEngine", { engine: nrEngineSelect.value }).catch(() => {});
+      await refreshNativeVoices();
+      if (wasReading) speakFrom(ttsPos);
+    });
+    // 切換語音：朗讀中以新語音重唸目前段落
+    nrVoiceSelect.addEventListener("change", () => {
+      localStorage.setItem("ttsVoiceAndroid", nrVoiceSelect.value);
+      if (ttsActive && !ttsPaused) speakFrom(ttsPos);
     });
   } else {
     loadVoices();

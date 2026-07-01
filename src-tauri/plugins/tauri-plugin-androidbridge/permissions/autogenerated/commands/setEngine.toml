@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-setEngine"
+description = "Enables the setEngine command without any pre-configured scope."
+commands.allow = ["setEngine"]
+
+[[permission]]
+identifier = "deny-setEngine"
+description = "Denies the setEngine command without any pre-configured scope."
+commands.deny = ["setEngine"]

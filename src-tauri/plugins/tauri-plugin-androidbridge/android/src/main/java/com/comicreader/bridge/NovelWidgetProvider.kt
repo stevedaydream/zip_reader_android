@@ -19,21 +19,33 @@ class NovelWidgetProvider : AppWidgetProvider() {
         const val ACTION_STOP = "com.comicreader.bridge.widget.STOP"
 
         /** 依朗讀狀態重繪所有 widget 實例 */
-        fun render(context: Context, playing: Boolean, active: Boolean) {
+        fun render(context: Context, playing: Boolean, active: Boolean, title: String) {
             val mgr = AppWidgetManager.getInstance(context)
             val ids = mgr.getAppWidgetIds(
                 ComponentName(context, NovelWidgetProvider::class.java)
             )
             if (ids == null || ids.isEmpty()) return
-            mgr.updateAppWidget(ids, buildViews(context, playing, active))
+            mgr.updateAppWidget(ids, buildViews(context, playing, active, title))
         }
 
-        private fun buildViews(context: Context, playing: Boolean, active: Boolean): RemoteViews {
+        private fun buildViews(
+            context: Context,
+            playing: Boolean,
+            active: Boolean,
+            title: String
+        ): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.novel_widget)
             views.setTextViewText(
                 R.id.widget_status,
-                if (!active) "未在朗讀" else if (playing) "正在朗讀…" else "已暫停"
+                if (!active) "未在朗讀" else if (playing) "朗讀中" else "已暫停"
             )
+            // 章節標題：朗讀中且有標題才顯示
+            if (active && title.isNotBlank()) {
+                views.setViewVisibility(R.id.widget_title, android.view.View.VISIBLE)
+                views.setTextViewText(R.id.widget_title, title)
+            } else {
+                views.setViewVisibility(R.id.widget_title, android.view.View.GONE)
+            }
             views.setTextViewText(R.id.widget_toggle, if (playing) "暫停" else "繼續")
             views.setBoolean(R.id.widget_toggle, "setEnabled", active)
             views.setBoolean(R.id.widget_stop, "setEnabled", active)
@@ -61,7 +73,12 @@ class NovelWidgetProvider : AppWidgetProvider() {
     ) {
         appWidgetManager.updateAppWidget(
             appWidgetIds,
-            buildViews(context, BridgePlugin.isPlaying, BridgePlugin.isTtsActive)
+            buildViews(
+                context,
+                BridgePlugin.isPlaying,
+                BridgePlugin.isTtsActive,
+                BridgePlugin.currentTitle
+            )
         )
     }
 

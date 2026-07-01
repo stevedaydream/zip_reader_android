@@ -27,10 +27,14 @@ class TtsService : Service() {
         const val ACTION_STOP = "com.comicreader.bridge.action.STOP"
         const val ACTION_UPDATE = "com.comicreader.bridge.action.UPDATE"
         const val EXTRA_PLAYING = "playing"
+        const val EXTRA_TITLE = "title"
     }
 
     /** 是否正在朗讀（false = 已暫停），決定通知的圖示與按鈕文字 */
     private var playing = true
+
+    /** 目前朗讀章節標題（空字串則顯示 app 名） */
+    private var title = ""
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -38,7 +42,10 @@ class TtsService : Service() {
         when (intent?.action) {
             ACTION_TOGGLE -> BridgePlugin.emitRemote("toggle")
             ACTION_STOP -> BridgePlugin.emitRemote("stop")
-            ACTION_UPDATE -> playing = intent.getBooleanExtra(EXTRA_PLAYING, true)
+            ACTION_UPDATE -> {
+                playing = intent.getBooleanExtra(EXTRA_PLAYING, true)
+                title = intent.getStringExtra(EXTRA_TITLE) ?: ""
+            }
             else -> playing = true // 首次啟動（beginSession）
         }
         startForegroundCompat()
@@ -67,7 +74,7 @@ class TtsService : Service() {
             if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
         val toggleLabel = if (playing) "暫停" else "繼續"
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("漫畫閱讀器")
+            .setContentTitle(if (title.isBlank()) "漫畫閱讀器" else title)
             .setContentText(if (playing) "正在朗讀…" else "已暫停")
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setOngoing(true)

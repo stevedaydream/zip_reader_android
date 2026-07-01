@@ -1392,6 +1392,20 @@ input[type="checkbox"] {
 body.android .desktop-only {
   display: none !important;
 }
+/* 僅 Android 顯示（原生 TTS 引擎／語音選單） */
+body:not(.android) .android-only {
+  display: none !important;
+}
+.nr-select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
+}
 
 .preset-row {
   display: flex;

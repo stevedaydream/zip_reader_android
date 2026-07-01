@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-listVoices"
+description = "Enables the listVoices command without any pre-configured scope."
+commands.allow = ["listVoices"]
+
+[[permission]]
+identifier = "deny-listVoices"
+description = "Denies the listVoices command without any pre-configured scope."
+commands.deny = ["listVoices"]

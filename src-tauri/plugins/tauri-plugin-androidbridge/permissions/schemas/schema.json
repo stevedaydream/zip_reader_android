@@ -319,6 +319,30 @@
           "markdownDescription": "Denies the hasAllFilesAccess command without any pre-configured scope."
         },
         {
+          "description": "Enables the listEngines command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-listEngines",
+          "markdownDescription": "Enables the listEngines command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the listEngines command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-listEngines",
+          "markdownDescription": "Denies the listEngines command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the listVoices command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-listVoices",
+          "markdownDescription": "Enables the listVoices command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the listVoices command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-listVoices",
+          "markdownDescription": "Denies the listVoices command without any pre-configured scope."
+        },
+        {
           "description": "Enables the pickFolder command without any pre-configured scope.",
           "type": "string",
           "const": "allow-pickFolder",
@@ -367,6 +391,18 @@
           "markdownDescription": "Denies the requestAllFilesAccess command without any pre-configured scope."
         },
         {
+          "description": "Enables the setEngine command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-setEngine",
+          "markdownDescription": "Enables the setEngine command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the setEngine command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-setEngine",
+          "markdownDescription": "Denies the setEngine command without any pre-configured scope."
+        },
+        {
           "description": "Enables the speak command without any pre-configured scope.",
           "type": "string",
           "const": "allow-speak",
@@ -391,10 +427,22 @@
           "markdownDescription": "Denies the stopSpeak command without any pre-configured scope."
         },
         {
-          "description": "Default permissions: TTS speak/stop and all-files-access helpers\n#### This default permission set includes:\n\n- `allow-speak`\n- `allow-stopSpeak`\n- `allow-endTts`\n- `allow-hasAllFilesAccess`\n- `allow-requestAllFilesAccess`\n- `allow-pickFolder`\n- `allow-registerListener`\n- `allow-removeListener`",
+          "description": "Enables the updatePlayback command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-updatePlayback",
+          "markdownDescription": "Enables the updatePlayback command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the updatePlayback command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-updatePlayback",
+          "markdownDescription": "Denies the updatePlayback command without any pre-configured scope."
+        },
+        {
+          "description": "Default permissions: TTS speak/stop and all-files-access helpers\n#### This default permission set includes:\n\n- `allow-speak`\n- `allow-stopSpeak`\n- `allow-endTts`\n- `allow-updatePlayback`\n- `allow-listVoices`\n- `allow-listEngines`\n- `allow-setEngine`\n- `allow-hasAllFilesAccess`\n- `allow-requestAllFilesAccess`\n- `allow-pickFolder`\n- `allow-registerListener`\n- `allow-removeListener`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions: TTS speak/stop and all-files-access helpers\n#### This default permission set includes:\n\n- `allow-speak`\n- `allow-stopSpeak`\n- `allow-endTts`\n- `allow-hasAllFilesAccess`\n- `allow-requestAllFilesAccess`\n- `allow-pickFolder`\n- `allow-registerListener`\n- `allow-removeListener`"
+          "markdownDescription": "Default permissions: TTS speak/stop and all-files-access helpers\n#### This default permission set includes:\n\n- `allow-speak`\n- `allow-stopSpeak`\n- `allow-endTts`\n- `allow-updatePlayback`\n- `allow-listVoices`\n- `allow-listEngines`\n- `allow-setEngine`\n- `allow-hasAllFilesAccess`\n- `allow-requestAllFilesAccess`\n- `allow-pickFolder`\n- `allow-registerListener`\n- `allow-removeListener`"
         }
       ]
     }
