@@ -7,6 +7,10 @@ Default permissions: TTS speak/stop and all-files-access helpers
 - `allow-speak`
 - `allow-stopSpeak`
 - `allow-endTts`
+- `allow-updatePlayback`
+- `allow-listVoices`
+- `allow-listEngines`
+- `allow-setEngine`
 - `allow-hasAllFilesAccess`
 - `allow-requestAllFilesAccess`
 - `allow-pickFolder`
@@ -70,6 +74,58 @@ Enables the hasAllFilesAccess command without any pre-configured scope.
 <td>
 
 Denies the hasAllFilesAccess command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`androidbridge:allow-listEngines`
+
+</td>
+<td>
+
+Enables the listEngines command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`androidbridge:deny-listEngines`
+
+</td>
+<td>
+
+Denies the listEngines command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`androidbridge:allow-listVoices`
+
+</td>
+<td>
+
+Enables the listVoices command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`androidbridge:deny-listVoices`
+
+</td>
+<td>
+
+Denies the listVoices command without any pre-configured scope.
 
 </td>
 </tr>
@@ -181,6 +237,32 @@ Denies the requestAllFilesAccess command without any pre-configured scope.
 <tr>
 <td>
 
+`androidbridge:allow-setEngine`
+
+</td>
+<td>
+
+Enables the setEngine command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`androidbridge:deny-setEngine`
+
+</td>
+<td>
+
+Denies the setEngine command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `androidbridge:allow-speak`
 
 </td>
@@ -226,6 +308,32 @@ Enables the stopSpeak command without any pre-configured scope.
 <td>
 
 Denies the stopSpeak command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`androidbridge:allow-updatePlayback`
+
+</td>
+<td>
+
+Enables the updatePlayback command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`androidbridge:deny-updatePlayback`
+
+</td>
+<td>
+
+Denies the updatePlayback command without any pre-configured scope.
 
 </td>
 </tr>

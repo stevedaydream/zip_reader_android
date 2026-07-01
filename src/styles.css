@@ -476,7 +476,8 @@ input[type="number"] {
 .reader-bar {
   display: flex;
   align-items: center;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 10px 14px;
   padding: 12px 20px;
   background: var(--canvas-chrome);
   border-bottom: 1px solid var(--canvas-hairline);
@@ -743,6 +744,22 @@ input[type="number"] {
   border-left-color: var(--accent);
 }
 
+/* 點按翻頁：短暫標示上一頁最後一段，翻頁結束後淡出 */
+.novel-content p.page-mark {
+  animation: pageMark 1.4s ease forwards;
+}
+@keyframes pageMark {
+  0%,
+  55% {
+    background: rgba(174, 74, 46, 0.16);
+    border-left-color: var(--accent);
+  }
+  100% {
+    background: transparent;
+    border-left-color: transparent;
+  }
+}
+
 /* ---------- 朗讀控制 ---------- */
 .tts-controls {
   display: flex;
@@ -788,23 +805,38 @@ input[type="range"] {
 }
 
 /* ---------- 全 App 底部列拉把（收起時提示上滑叫出） ---------- */
+/* 拉把：整塊為透明大點擊區（好按、不易誤觸內文），中央畫出細長提示條 */
 .bar-handle {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(7px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(env(safe-area-inset-bottom, 0px));
   z-index: 119;
-  width: 46px;
-  height: 5px;
-  border-radius: 3px;
-  background: rgba(120, 110, 95, 0.55);
+  width: 150px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
   cursor: pointer;
   transition: opacity 0.2s ease;
 }
-/* 深色閱讀畫布上的拉把用淺色 */
-#reader-view .bar-handle,
-#novel-reader-view.source-mode .bar-handle {
-  background: rgba(230, 221, 203, 0.5);
+.bar-handle::before {
+  content: "";
+  width: 60px;
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(120, 110, 95, 0.6);
+  transition: background 0.15s ease, width 0.15s ease;
+}
+.bar-handle:active::before {
+  background: var(--accent);
+  width: 76px;
+}
+/* 深色閱讀畫布上的提示條用淺色 */
+#reader-view .bar-handle::before,
+#novel-reader-view.source-mode .bar-handle::before {
+  background: rgba(230, 221, 203, 0.55);
 }
 /* 底部列展開時隱藏拉把 */
 #reader-view:not(.chrome-hidden) .bar-handle,
@@ -1000,7 +1032,8 @@ input[type="range"] {
 .nr-set-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 10px 14px;
   padding: 14px 2px;
   border-bottom: 1px solid var(--hairline-soft);
 }
@@ -1024,6 +1057,38 @@ input[type="range"] {
 .nr-set-row #nr-font-value {
   flex: 1;
   text-align: center;
+}
+
+/* 閱讀模式切換鈕（單鈕切換 捲動／翻頁） */
+.nr-mode-btn {
+  flex: 0 0 auto;
+}
+.nr-mode-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--paper);
+}
+/* 翻頁模式時出現的自動翻頁控制：獨佔一整行（基準 100% → 換到模式鈕下方），
+   避免窄螢幕時按鈕／滑桿被擠出畫面 */
+.nr-auto-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.nr-auto-wrap input[type="range"] {
+  flex: 1;
+  width: auto;
+  min-width: 70px;
+}
+#nr-auto-toggle {
+  flex: 0 0 auto;
+}
+#nr-auto-toggle.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--paper);
 }
 
 /* 預載控制（設定面板內） */
@@ -1099,6 +1164,20 @@ input[type="range"] {
 #app-shell > .tab-view > .folder-row,
 #app-shell > .tab-view > .shelf-wrap {
   order: 3;
+}
+/* 頁尾：排在刊頭之下＝真正最底 */
+#app-shell > .app-footer {
+  order: 4;
+}
+.app-footer {
+  flex: 0 0 auto;
+  text-align: center;
+  padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
+  font-family: var(--num);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  background: var(--paper);
 }
 
 /* 收合動畫（隱藏時高度收為 0，網格補滿） */
@@ -1326,6 +1405,20 @@ input[type="checkbox"] {
 /* ---------- Android / 觸控 ---------- */
 body.android .desktop-only {
   display: none !important;
+}
+/* 僅 Android 顯示（原生 TTS 引擎／語音選單） */
+body:not(.android) .android-only {
+  display: none !important;
+}
+.nr-select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
 }
 
 .preset-row {

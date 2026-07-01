@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-listEngines"
+description = "Enables the listEngines command without any pre-configured scope."
+commands.allow = ["listEngines"]
+
+[[permission]]
+identifier = "deny-listEngines"
+description = "Denies the listEngines command without any pre-configured scope."
+commands.deny = ["listEngines"]

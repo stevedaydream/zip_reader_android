@@ -94,6 +94,11 @@
 
       <!-- 底部選單收起時的拉把（上滑或點此叫出） -->
       <div id="home-bar-handle" class="bar-handle" title="上滑或點此叫出選單"></div>
+
+      <!-- 頁尾：版本 · 製作者 -->
+      <footer id="app-footer" class="app-footer">
+        <span id="app-version"></span> · © stevedaydream
+      </footer>
     </div>
 
     <!-- 漫畫閱讀畫面 -->
@@ -197,11 +202,29 @@
             <input id="nr-rate" type="range" min="0.5" max="2" step="0.1" value="1" />
             <span id="nr-rate-value" class="rate-value">1.0</span>
           </div>
+          <div class="nr-set-row android-only">
+            <span class="nr-set-label">引擎</span>
+            <select id="nr-engine" class="nr-select" title="TTS 引擎"></select>
+          </div>
+          <div class="nr-set-row android-only">
+            <span class="nr-set-label">語音</span>
+            <select id="nr-voice" class="nr-select" title="朗讀語音"></select>
+          </div>
           <div class="nr-set-row">
             <span class="nr-set-label">字體</span>
             <button id="nr-font-minus" title="縮小字體">A−</button>
             <span id="nr-font-value" class="rate-value">19</span>
             <button id="nr-font-plus" title="放大字體">A＋</button>
+          </div>
+          <div class="nr-set-row">
+            <span class="nr-set-label">翻頁</span>
+            <button id="nr-mode-toggle" class="nr-mode-btn" title="點此切換 捲動／翻頁；長按段落朗讀">捲動模式</button>
+            <span id="nr-auto-wrap" class="nr-auto-wrap hidden">
+              <button id="nr-auto-toggle" title="自動翻頁">自動翻頁</button>
+              <button id="nr-auto-stop" class="hidden" title="停止自動翻頁">停止翻頁</button>
+              <input id="nr-auto-rate" type="range" min="1" max="5" step="0.1" value="3" title="自動翻頁速度（秒）" />
+              <span id="nr-auto-rate-value" class="rate-value">3.0s</span>
+            </span>
           </div>
           <div class="nr-set-row nr-set-col">
             <span class="nr-set-label">離線預載</span>

@@ -18,9 +18,19 @@ src-tauri/plugins/tauri-plugin-androidbridge/
   permissions/default.toml
   android/…/BridgePlugin.kt
                       原生 TextToSpeech（speak/stopSpeak + done/error 事件）、
-                      hasAllFilesAccess / requestAllFilesAccess（MANAGE_EXTERNAL_STORAGE）
+                      hasAllFilesAccess / requestAllFilesAccess（MANAGE_EXTERNAL_STORAGE）、
+                      朗讀遙控：emitRemote 把通知/widget 按鈕轉成 "remoteControl" 事件回 JS，
+                      updatePlayback 命令由 JS 回報播放狀態＋章節標題（同步通知圖示/標題＋widget）；
+                      TTS 引擎/語音：listEngines/listVoices/setEngine（重建引擎，就緒發 "ttsReady"），
+                      speak 帶 voice 套用選定語音
+  android/…/TtsService.kt
+                      朗讀前景服務；通知列帶「暫停/繼續」「停止」兩顆按鈕（離開 app／鎖屏即可停），
+                      按鈕經 onStartCommand → BridgePlugin.emitRemote → JS
+  android/…/NovelWidgetProvider.kt
+                      桌面遙控 widget（同兩顆控制，共用 emitRemote）；僅朗讀中可用、閒置轉灰
+                      （res/layout/novel_widget.xml、res/xml/novel_widget_info.xml）
   android/src/main/AndroidManifest.xml
-                      宣告儲存權限（經 manifest merge 併入 app，免手動改 gen）
+                      宣告儲存權限＋widget receiver（經 manifest merge 併入 app，免手動改 gen）
 src-tauri/src/webnovel.rs
                       網路小說抓取＋純淨化解析（reqwest + scraper）：
                       編碼偵測（header/meta/chardetng）、已知內文選擇器＋文字密度備援、
@@ -83,6 +93,20 @@ capabilities/         default.json（含 androidbridge:default）+ desktop.json�
 - [x] src/main.ts 的 `GITHUB_REPO` = stevedaydream/zip_reader_android（tauri.conf.json updater endpoint 同步）
 - [ ] 產生 keystore + GitHub Secrets：ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS
 - [ ] gen/android/app/build.gradle.kts 加 signingConfig（見 README）
+
+## 狀態（2026-07-02）
+
+- 朗讀遙控：通知列「暫停/繼續」「停止」按鈕 ＋ 桌面遙控 widget（僅朗讀中可用）；
+  widget/通知顯示「朗讀中＋目前章節標題」（updatePlayback 帶 title）。
+- Android 原生 TTS 引擎／語音切換：閱讀設定面板新增「引擎」「語音」下拉（android-only），
+  外掛新增 listVoices/listEngines/setEngine 指令、speak 帶 voice、就緒發 ttsReady 事件。
+- 前端 tsc/vite build 通過；debug APK 建置通過；待手機實裝驗證
+  （通知/widget 按鈕與章節顯示、鎖屏可停、引擎/語音切換生效）。
+
+## 狀態（2026-07-01）
+
+- 朗讀遙控：通知列「暫停/繼續」「停止」按鈕 ＋ 桌面遙控 widget（僅朗讀中可用）已實作，
+  前端 tsc/vite build 通過；待手機實裝驗證（通知按鈕、鎖屏可停、widget 加到桌面能停）。
 
 ## 狀態（2026-06-14）
 
