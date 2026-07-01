@@ -891,6 +891,7 @@ function speakCurrent() {
       text,
       rate: currentRate(),
       voice: nrVoiceSelect.value,
+      title: novelTitle.textContent ?? "",
     }).catch((e) => {
       showToast("朗讀失敗：" + String(e));
       stopTts();
@@ -1218,6 +1219,15 @@ export function initNovel(shell: HTMLElement) {
     void addPluginListener("androidbridge", "ttsReady", () => {
       void refreshNativeEngines().then(refreshNativeVoices);
     });
+    // ttsReady 可能在監聽註冊前就觸發（外掛 load 時），故主動載入並輪詢等引擎就緒
+    void (async () => {
+      await refreshNativeEngines();
+      for (let i = 0; i < 8; i++) {
+        await refreshNativeVoices();
+        if (nrVoiceSelect.options.length > 1) break; // 已含語音（>1：含「系統預設」）
+        await new Promise((r) => setTimeout(r, 400));
+      }
+    })();
     // 切換引擎：重建後重載語音；朗讀中則以新引擎重唸
     nrEngineSelect.addEventListener("change", async () => {
       localStorage.setItem("ttsEngine", nrEngineSelect.value);

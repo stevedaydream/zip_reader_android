@@ -506,6 +506,9 @@ themeFab.addEventListener("animationend", () => themeFab.classList.remove("switc
 // ---------- 啟動 ----------
 if (isAndroid) document.body.classList.add("android");
 applyTheme(localStorage.getItem("theme") ?? "washi");
+void getVersion().then((v) => {
+  $("app-version").textContent = "v" + v;
+});
 initAndroidFolderDialog();
 const savedInterval = localStorage.getItem("autoInterval");
 if (savedInterval) autoIntervalInput.value = savedInterval;

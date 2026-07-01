@@ -1165,6 +1165,20 @@ input[type="range"] {
 #app-shell > .tab-view > .shelf-wrap {
   order: 3;
 }
+/* 頁尾：排在刊頭之下＝真正最底 */
+#app-shell > .app-footer {
+  order: 4;
+}
+.app-footer {
+  flex: 0 0 auto;
+  text-align: center;
+  padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
+  font-family: var(--num);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  background: var(--paper);
+}
 
 /* 收合動畫（隱藏時高度收為 0，網格補滿） */
 .masthead,

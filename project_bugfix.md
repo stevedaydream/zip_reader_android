@@ -1,5 +1,29 @@
 # 踩坑紀錄
 
+## -5. 原生 TTS 引擎/語音清單空白、中文語音被濾光（2026-07）
+
+**症狀**：閱讀設定的「引擎/語音」下拉點進去全空白。
+
+**原因**（兩層）：
+1. 前端只靠外掛的一次性 `ttsReady` 事件填清單，但外掛在 `load()`（webview 建立時）
+   就 `trigger("ttsReady")`，早於 JS `addPluginListener` 註冊 → 事件被錯過，永不填。
+2. 中文語音過濾只認 `locale.language == "zh"`，但 Google 等引擎的普通話語音語言碼是
+   **`cmn`**（ISO 639-3），會被全數濾掉。
+
+**解法**：前端啟動時**主動**呼 listEngines/listVoices 並輪詢（等 TTS 就緒），不單靠事件；
+外掛 `isChinese()` 放寬為 `zh/cmn/yue/zho`。
+
+## -4. widget/通知不顯示章節標題（updatePlayback 早於 beginSession，2026-07）
+
+**症狀**：朗讀開始後 widget/通知的章節標題一直空白，要等暫停或換章才出現。
+
+**原因**：`speakFrom` 裡 `reportPlayback(true)` 在 `speakCurrent()` **之前**呼叫，
+此時原生 `beginSession` 尚未執行、`isTtsActive` 仍為 false → `updatePlayback` 被
+「非朗讀中則忽略」的守衛擋掉，首次標題送不出去。
+
+**解法**：改由 `speak` 指令帶 `title`，在 Kotlin `beginSession()` **之後**、標題有變時
+才 `pushState(true, title)` 同步通知/widget，徹底避開 JS↔原生的會話啟動 race。
+
 ## -2. 螢幕關閉後 TTS 停止換段/換章（2026-06）
 
 **症狀**：朗讀時關閉螢幕，過一段就停，無法自動換章。

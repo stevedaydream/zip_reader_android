@@ -27,6 +27,7 @@ class SpeakArgs {
     var text: String = ""
     var rate: Float = 1.0f
     var voice: String = ""
+    var title: String = ""
 }
 
 @InvokeArg
@@ -169,6 +170,8 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
             return
         }
         beginSession()
+        // 首段或換章時同步通知/widget 標題（beginSession 已就緒，避免 JS 端 race）
+        if (args.title != currentTitle) pushState(true, args.title)
         if (args.voice.isNotBlank()) {
             engine.voices?.firstOrNull { it.name == args.voice }?.let { engine.setVoice(it) }
         }
@@ -177,12 +180,12 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
         invoke.resolve()
     }
 
-    /** 列出目前引擎的中文語音（zh-*），供前端選擇 */
+    /** 列出目前引擎的中文語音，供前端選擇（含 cmn/yue/zho 等中文語言碼） */
     @Command
     fun listVoices(invoke: Invoke) {
         val arr = JSArray()
         tts?.voices
-            ?.filter { it.locale?.language.equals("zh", ignoreCase = true) }
+            ?.filter { isChinese(it.locale?.language) }
             ?.sortedBy { it.name }
             ?.forEach { v ->
                 val o = JSObject()
@@ -246,17 +249,26 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     @Command
     fun updatePlayback(invoke: Invoke) {
         val args = invoke.parseArgs(UpdatePlaybackArgs::class.java)
-        if (isTtsActive) {
-            isPlaying = args.playing
-            currentTitle = args.title
-            val intent = Intent(activity, TtsService::class.java)
-                .setAction(TtsService.ACTION_UPDATE)
-                .putExtra(TtsService.EXTRA_PLAYING, args.playing)
-                .putExtra(TtsService.EXTRA_TITLE, args.title)
-            activity.startService(intent)
-            NovelWidgetProvider.render(activity, playing = args.playing, active = true, title = args.title)
-        }
+        if (isTtsActive) pushState(args.playing, args.title)
         invoke.resolve()
+    }
+
+    /** 同步播放狀態＋標題到通知與 widget（會話進行中呼叫） */
+    private fun pushState(playing: Boolean, title: String) {
+        isPlaying = playing
+        currentTitle = title
+        val intent = Intent(activity, TtsService::class.java)
+            .setAction(TtsService.ACTION_UPDATE)
+            .putExtra(TtsService.EXTRA_PLAYING, playing)
+            .putExtra(TtsService.EXTRA_TITLE, title)
+        activity.startService(intent)
+        NovelWidgetProvider.render(activity, playing = playing, active = true, title = title)
+    }
+
+    /** 判斷語言碼是否為中文（含 cmn 普通話、yue 粵語、zho 巨集語言、zh） */
+    private fun isChinese(lang: String?): Boolean {
+        val l = lang?.lowercase() ?: return false
+        return l == "zh" || l == "cmn" || l == "yue" || l == "zho"
     }
 
     /** Android 11+ 是否已授予「所有檔案存取」 */

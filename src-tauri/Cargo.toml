@@ -1,6 +1,6 @@
 [package]
 name = "comic-reader"
-version = "0.2.5"
+version = "0.2.6"
 description = "漫畫壓縮檔閱讀器"
 authors = ["you"]
 edition = "2021"
