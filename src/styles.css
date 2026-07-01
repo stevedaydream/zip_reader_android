@@ -1068,12 +1068,13 @@ input[type="range"] {
   border-color: var(--accent);
   color: var(--paper);
 }
-/* 翻頁模式時出現的自動翻頁控制 */
+/* 翻頁模式時出現的自動翻頁控制：獨佔一整行（基準 100% → 換到模式鈕下方），
+   避免窄螢幕時按鈕／滑桿被擠出畫面 */
 .nr-auto-wrap {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex: 1;
+  flex: 1 1 100%;
   min-width: 0;
 }
 .nr-auto-wrap input[type="range"] {

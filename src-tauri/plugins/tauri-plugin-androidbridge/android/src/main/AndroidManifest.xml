@@ -19,5 +19,16 @@
             android:name="com.comicreader.bridge.TtsService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
+        <!-- 桌面遙控 widget：暫停/繼續、停止（僅朗讀中可用） -->
+        <receiver
+            android:name="com.comicreader.bridge.NovelWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/novel_widget_info" />
+        </receiver>
     </application>
 </manifest>

@@ -915,6 +915,11 @@ function cancelSpeech() {
   }
 }
 
+/** 回報播放狀態給原生：同步通知列與桌面 widget 的「暫停/繼續」外觀 */
+function reportPlayback(playing: boolean) {
+  if (isAndroid) invoke("plugin:androidbridge|updatePlayback", { playing }).catch(() => {});
+}
+
 function speakFrom(index: number) {
   ttsActive = false; // 先壓住 cancel 觸發的 onend/onerror
   cancelSpeech();
@@ -924,6 +929,7 @@ function speakFrom(index: number) {
   btnTtsPlay.classList.add("active");
   btnTtsPause.textContent = "暫停";
   setTtsToggle(true);
+  reportPlayback(true);
   speakCurrent();
 }
 
@@ -939,6 +945,7 @@ function pauseOrResumeTts() {
   if (ttsPaused) {
     ttsPaused = false;
     btnTtsPause.textContent = "暫停";
+    reportPlayback(true);
     if (isAndroid) {
       // 原生 TTS 沒有 resume，從目前段落重唸
       speakCurrent();
@@ -948,6 +955,7 @@ function pauseOrResumeTts() {
   } else {
     ttsPaused = true;
     btnTtsPause.textContent = "繼續";
+    reportPlayback(false);
     if (isAndroid) {
       invoke("plugin:androidbridge|stopSpeak").catch(() => {});
     } else {
@@ -1125,6 +1133,17 @@ export function initNovel(shell: HTMLElement) {
     });
     void addPluginListener("androidbridge", "error", () => {
       if (ttsActive) stopTts();
+    });
+    // 通知列/桌面 widget 的遙控按鈕：暫停·繼續 / 停止
+    void addPluginListener("androidbridge", "remoteControl", (payload: { action?: string }) => {
+      switch (payload?.action) {
+        case "toggle":
+          pauseOrResumeTts();
+          break;
+        case "stop":
+          stopTts();
+          break;
+      }
     });
   } else {
     loadVoices();

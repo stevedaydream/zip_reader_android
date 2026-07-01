@@ -28,6 +28,10 @@ fn defaults() -> Vec<Source> {
             url: "https://www.haodoo.net".into(),
         },
         Source {
+            name: "twkan 台灣看書".into(),
+            url: "https://twkan.com/".into(),
+        },
+        Source {
             name: "Project Gutenberg".into(),
             url: "https://www.gutenberg.org".into(),
         },

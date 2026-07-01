@@ -27,12 +27,40 @@ class SpeakArgs {
     var rate: Float = 1.0f
 }
 
+@InvokeArg
+class UpdatePlaybackArgs {
+    var playing: Boolean = true
+}
+
 @TauriPlugin
 class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     companion object {
         /** 朗讀進行中旗標，供 MainActivity 在螢幕關閉時保持 WebView/JS 存活 */
         @Volatile
         var isTtsActive: Boolean = false
+
+        /** 目前是否正在朗讀（false = 已暫停），供 widget 重繪時取用 */
+        @Volatile
+        var isPlaying: Boolean = false
+
+        @Volatile
+        private var instance: BridgePlugin? = null
+
+        /**
+         * 供 TtsService（通知按鈕）與 NovelWidgetProvider（桌面按鈕）把點擊
+         * 轉成 JS 事件 "remoteControl"。非朗讀中則忽略，避免誤觸。
+         */
+        fun emitRemote(action: String) {
+            if (!isTtsActive) return
+            instance?.dispatchRemote(action)
+        }
+    }
+
+    /** 把遙控動作以事件送回 JS（novel.ts 監聽後跑既有暫停/停止邏輯） */
+    private fun dispatchRemote(action: String) {
+        val obj = JSObject()
+        obj.put("action", action)
+        trigger("remoteControl", obj)
     }
 
     private var tts: TextToSpeech? = null
@@ -48,6 +76,8 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     private fun beginSession() {
         if (isTtsActive) return
         isTtsActive = true
+        isPlaying = true
+        NovelWidgetProvider.render(activity, playing = true, active = true)
         val intent = Intent(activity, TtsService::class.java)
         if (Build.VERSION.SDK_INT >= 26) {
             activity.startForegroundService(intent)
@@ -67,6 +97,8 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     /** 結束朗讀會話：停止前景服務 ＋ 釋放 wake lock */
     private fun endSession() {
         isTtsActive = false
+        isPlaying = false
+        NovelWidgetProvider.render(activity, playing = false, active = false)
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }
@@ -75,6 +107,7 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
 
     override fun load(webView: WebView) {
         super.load(webView)
+        instance = this
         tts = TextToSpeech(activity) { status ->
             ready = status == TextToSpeech.SUCCESS
             if (ready) {
@@ -125,6 +158,24 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     fun endTts(invoke: Invoke) {
         tts?.stop()
         endSession()
+        invoke.resolve()
+    }
+
+    /**
+     * JS 回報播放狀態（朗讀中 / 已暫停）：同步通知列的暫停·繼續圖示與桌面 widget。
+     * 只在會話進行中有意義；未在朗讀時忽略以免誤啟服務。
+     */
+    @Command
+    fun updatePlayback(invoke: Invoke) {
+        val args = invoke.parseArgs(UpdatePlaybackArgs::class.java)
+        if (isTtsActive) {
+            isPlaying = args.playing
+            val intent = Intent(activity, TtsService::class.java)
+                .setAction(TtsService.ACTION_UPDATE)
+                .putExtra(TtsService.EXTRA_PLAYING, args.playing)
+            activity.startService(intent)
+            NovelWidgetProvider.render(activity, playing = args.playing, active = true)
+        }
         invoke.resolve()
     }
 
