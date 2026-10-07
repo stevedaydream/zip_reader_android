@@ -77,7 +77,8 @@ echo [1b/4] Generating release notes (CHANGELOG.md)...
 chcp 65001 >nul
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-notes.ps1 -Version %NEW_VER%
 if errorlevel 1 ( echo ERROR: release notes failed ^& pause ^& goto MENU )
-set /p EDIT_NOTES=Edit CHANGELOG.md in Notepad before commit? (y/N):
+set EDIT_NOTES=
+set /p EDIT_NOTES=Edit CHANGELOG.md in Notepad? (y / Enter = no):
 if /i "%EDIT_NOTES%"=="y" notepad CHANGELOG.md
 
 echo.
