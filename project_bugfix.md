@@ -1,5 +1,15 @@
 # 踩坑紀錄
 
+## BF-13. Android CI 安裝舊 tools 套件失敗（2026-10-07）
+
+**症狀**：SDK 授權接受完成後，setup-android@v3 執行 sdkmanager tools，報
+`Failed to find package 'tools'` 並以 exit code 1 結束，尚未進入 APK 建置。
+
+**原因**：Action v3 的 packages 預設值是 tools platform-tools，但 Google 已停止提供 tools 套件。
+
+**解法**：release-android.yml 在 setup-android 的 with 明確指定 `packages: platform-tools`。
+sdkmanager 由 Action 安裝的 cmdline-tools 提供，後續 NDK 安裝可沿用原設定。
+
 ## -6. WebView 153 凍結隱藏頁面 → 螢幕關閉 1～2 分鐘後朗讀停止（2026-10）
 
 **症狀**：Android 16 / One UI 8.5（S25+）上，朗讀時關螢幕約 1～2 分鐘就停在某段或換章後無聲；

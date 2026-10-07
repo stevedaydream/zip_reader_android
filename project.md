@@ -96,6 +96,7 @@ capabilities/         default.json（含 androidbridge:default）+ desktop.json�
 
 ## 狀態（2026-10-07）
 
+- Android 發佈 CI：setup-android@v3 明確指定 packages 為 platform-tools，避開已下架的舊 tools 套件。
 - release.bat：新版本號預設「目前版本 patch+1」；發版時以 scripts/release-notes.ps1 抓上一個 tag 後的
   commit 標題寫入 CHANGELOG.md（排除 bump/docs），Actions 取該版段落作為 GitHub Release 說明。
 - 修正 WebView 153 凍結隱藏頁面導致螢幕關閉後朗讀中斷：MainActivity.onStop 於朗讀中
