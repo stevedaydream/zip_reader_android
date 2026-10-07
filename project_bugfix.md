@@ -1,5 +1,19 @@
 # 踩坑紀錄
 
+## -6. WebView 153 凍結隱藏頁面 → 螢幕關閉 1～2 分鐘後朗讀停止（2026-10）
+
+**症狀**：Android 16 / One UI 8.5（S25+）上，朗讀時關螢幕約 1～2 分鐘就停在某段或換章後無聲；
+點亮螢幕立即接著唸。之前正常，WebView 自動更新到 153（2026-09-25）後才出現。
+
+**排查**：前景服務 isForeground=true、wake lock 持有、主進程與渲染進程皆未被 OS freezer 凍結、
+網路 `dumpsys netpolicy` effective=NONE（FGS 下未被封鎖）。但渲染進程 CPU 時間不再增加——
+是 Chromium 自己凍結了「隱藏且無聲」的頁面（TTS 音訊在 Google TTS 進程，頁面被視為無聲）。
+log 中 `AudioHardening ... would be muted` 只是警告（前景時也出現），非原因。
+
+**解法**：MainActivity 覆寫 `onStop`：朗讀中延遲 500ms（等系統不可見通知先送達）呼叫
+`webView.dispatchWindowVisibilityChanged(View.VISIBLE)` + `onResume()` + `resumeTimers()`，
+讓 WebView 認為視窗仍可見。實機關螢幕 5 分鐘連續朗讀並成功換章。
+
 ## -5. 原生 TTS 引擎/語音清單空白、中文語音被濾光（2026-07）
 
 **症狀**：閱讀設定的「引擎/語音」下拉點進去全空白。

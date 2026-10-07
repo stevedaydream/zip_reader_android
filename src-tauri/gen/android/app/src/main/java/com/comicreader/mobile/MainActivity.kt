@@ -1,6 +1,7 @@
 package com.comicreader.mobile
 
 import android.os.Bundle
+import android.view.View
 import android.webkit.WebView
 import androidx.activity.enableEdgeToEdge
 import com.comicreader.bridge.BridgePlugin
@@ -27,6 +28,22 @@ class MainActivity : TauriActivity() {
     if (BridgePlugin.isTtsActive) {
       webView?.onResume()
       webView?.resumeTimers()
+    }
+  }
+
+  override fun onStop() {
+    super.onStop()
+    // 螢幕關閉後視窗變為不可見，新版 WebView（153+）會在約 1～2 分鐘後凍結
+    // 「隱藏且無聲」的頁面（TTS 聲音由引擎進程播放，頁面被視為無聲），JS 鏈停擺。
+    // 朗讀中延遲回報視窗仍可見（等系統的不可見通知先送達），讓頁面不被凍結。
+    if (BridgePlugin.isTtsActive) {
+      webView?.postDelayed({
+        if (BridgePlugin.isTtsActive) {
+          webView?.dispatchWindowVisibilityChanged(View.VISIBLE)
+          webView?.onResume()
+          webView?.resumeTimers()
+        }
+      }, 500)
     }
   }
 }

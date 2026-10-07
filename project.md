@@ -94,6 +94,11 @@ capabilities/         default.json（含 androidbridge:default）+ desktop.json�
 - [ ] 產生 keystore + GitHub Secrets：ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS
 - [ ] gen/android/app/build.gradle.kts 加 signingConfig（見 README）
 
+## 狀態（2026-10-07）
+
+- 修正 WebView 153 凍結隱藏頁面導致螢幕關閉後朗讀中斷：MainActivity.onStop 於朗讀中
+  回報視窗仍可見（見 project_bugfix.md -6）。S25+ / Android 16 實機驗證關螢幕 5 分鐘連續朗讀＋換章。
+
 ## 狀態（2026-07-02）
 
 - 朗讀遙控：通知列「暫停/繼續」「停止」按鈕 ＋ 桌面遙控 widget（僅朗讀中可用）；
