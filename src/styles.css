@@ -716,6 +716,8 @@ input[type="number"] {
 }
 
 .novel-content {
+  user-select: none;
+  -webkit-user-select: none;
   max-width: 42em;
   margin: 0 auto;
   padding: 52px 36px 30vh;
@@ -735,8 +737,27 @@ input[type="number"] {
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.novel-content p:hover {
-  background: rgba(174, 74, 46, 0.06);
+@media (hover: hover) and (pointer: fine) {
+  .novel-content p:hover {
+    background: rgba(174, 74, 46, 0.06);
+  }
+}
+
+.novel-content p.long-pressing {
+  animation: longPressProgress 450ms linear forwards;
+  transition: none;
+}
+
+@keyframes longPressProgress {
+  from { background: transparent; }
+  to { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .novel-content p.long-pressing {
+    animation: none;
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+  }
 }
 
 .novel-content p.speaking {
@@ -1336,6 +1357,18 @@ input[type="checkbox"] {
   max-width: 80vw;
   box-shadow: 0 14px 34px -10px rgba(47, 42, 34, 0.5);
   animation: rise 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.toast.toast-top {
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  bottom: auto;
+  pointer-events: none;
+  animation-name: toastTopEnter;
+}
+
+@keyframes toastTopEnter {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 
 /* ---------- 捲軸 ---------- */

@@ -20,13 +20,26 @@ export const $ = <T extends HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 
 let toastTimer: number | null = null;
+let toastId = 0;
 
-export function showToast(msg: string) {
+export function showToast(msg: string, options: { duration?: number; position?: "top" | "bottom" } = {}) {
   const toast = $("toast");
+  const id = ++toastId;
   toast.textContent = msg;
+  const sourceReaderOpen = !$("novel-reader-view").classList.contains("hidden")
+    && $("novel-reader-view").classList.contains("source-mode");
+  toast.classList.toggle("toast-top", (options.position ?? (sourceReaderOpen ? "top" : "bottom")) === "top");
   toast.classList.remove("hidden");
   if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => toast.classList.add("hidden"), 3000);
+  toastTimer = null;
+  const hide = () => {
+    if (id !== toastId) return;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = null;
+    toast.classList.add("hidden");
+  };
+  if (options.duration !== 0) toastTimer = window.setTimeout(hide, options.duration ?? 3000);
+  return hide;
 }
 
 export function formatSize(bytes: number): string {

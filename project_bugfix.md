@@ -1,5 +1,27 @@
 # 踩坑紀錄
 
+## BF-15. 虛擬手機安裝 debug APK 空間不足（2026-10-07）
+
+**症狀**：API 36 虛擬手機重新安裝約 395MB 的 debug APK 時報
+`INSTALL_FAILED_INSUFFICIENT_STORAGE`，清快取與移除測試 App 後仍無法安裝。
+
+**解法**：僅對虛擬手機測試副本以 llvm-strip --strip-debug 移除原生除錯符號，
+重新封裝並用 debug keystore 簽章，縮至約 48MB 後可安裝；原始建置 APK 與專案設定不變。
+封裝時 .so 與 resources.arsc 必須不壓縮，再用 zipalign -P 16 -f 4 對齊；
+resources.arsc 壓縮會在 Android 11+ 被拒絕安裝。
+
+## BF-14. Android 閱讀長按誤觸與文字選取（2026-10-07）
+
+**症狀**：手指先停留再滑動時，450ms 計時器已開始朗讀；Android WebView 也會選取文字，
+朗讀中再次長按可能跳到其他段落。
+
+**解法**：內文禁止 user-select 並阻止 contextmenu；450ms 只顯示段落背景漸變，
+直到 touchend 才判斷朗讀。位移超過 10px、多指、touchcancel 或捲動即取消，
+朗讀中與暫停時禁止啟動長按。另將 hover 高亮限於滑鼠，避免觸控留下高亮造成混淆。
+
+**驗證**：API 36 虛擬手機實際觸控確認漸變、滿時間仍等待放開、滿時間後滑動取消、
+放開啟動、朗讀中與暫停時不觸發，且沒有文字選取。
+
 ## BF-13. Android CI 安裝舊 tools 套件失敗（2026-10-07）
 
 **症狀**：SDK 授權接受完成後，setup-android@v3 執行 sdkmanager tools，報

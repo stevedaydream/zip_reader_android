@@ -237,7 +237,8 @@ function updateChapterNav() {
 async function openWebChapter(url: string, bookName?: string | null): Promise<boolean> {
   if (webLoading) return false;
   webLoading = true;
-  showToast("正在載入章節…");
+  const sourceLoading = sourceMode;
+  const hideLoadingToast = showToast("正在載入章節…", sourceLoading ? { position: "top", duration: 0 } : {});
   try {
     // 書源閱讀：先查離線快取，命中即離線讀取（搭機適用）
     let ch: WebChapter;
@@ -262,6 +263,7 @@ async function openWebChapter(url: string, bookName?: string | null): Promise<bo
     webBookName = bookName ?? webBookName ?? ch.title ?? url;
     renderNovelText(ch.title || webBookName, ch.text);
     updateChapterNav();
+    if (sourceLoading) hideLoadingToast();
     if (bookCtx) {
       // 書源閱讀：更新「我的最愛」續讀位置（書不在最愛則後端略過）
       await invoke("update_favorite_progress", {
@@ -275,7 +277,7 @@ async function openWebChapter(url: string, bookName?: string | null): Promise<bo
     }
     return true;
   } catch (e) {
-    showToast("載入失敗：" + asCmdError(e).message);
+    showToast("載入失敗：" + asCmdError(e).message, sourceLoading ? { position: "top" } : {});
     return false;
   } finally {
     webLoading = false;
@@ -398,7 +400,7 @@ function pageScroll(dir: number) {
 
 /**
  * 觸控閱讀手勢（Android）：
- *  - 長按段落 ~0.45s → 從該段朗讀（取代單擊，避免滑動誤觸）
+ *  - 長按段落 ~0.45s 漸變提示，放開後從該段朗讀；朗讀中與暫停時忽略
  *  - 點擊（無位移）：捲動模式→切底部列；點按翻頁模式→右下頁/左上頁/中切底部列
  *  - 有位移＝正常捲動，不攔截
  */
@@ -407,52 +409,65 @@ function setupReadingGestures() {
   let startY = 0;
   let startT = 0;
   let moved = false;
-  let lpTimer: number | null = null;
+  let touchId: number | null = null;
+  let holdParagraph: HTMLParagraphElement | null = null;
   const clearLP = () => {
-    if (lpTimer !== null) {
-      clearTimeout(lpTimer);
-      lpTimer = null;
-    }
+    holdParagraph?.classList.remove("long-pressing");
+    holdParagraph = null;
+  };
+  const cancelGesture = () => {
+    moved = true;
+    clearLP();
   };
   novelScroll.addEventListener(
     "touchstart",
     (e) => {
+      if (e.touches.length !== 1 || touchId !== null) {
+        cancelGesture();
+        return;
+      }
       const t = e.touches[0];
-      if (!t) return;
+      touchId = t.identifier;
       startX = t.clientX;
       startY = t.clientY;
-      startT = Date.now();
+      startT = performance.now();
       moved = false;
       clearLP();
-      lpTimer = window.setTimeout(() => {
-        lpTimer = null;
-        if (moved) return;
-        const el = document.elementFromPoint(startX, startY);
-        const p = el?.closest("p");
-        if (p) {
-          const idx = paragraphs.indexOf(p as HTMLParagraphElement);
-          if (idx >= 0) speakFrom(idx);
+      if (!ttsActive && !ttsPaused && !webLoading) {
+        const p = (e.target as Element).closest("p");
+        if (p && paragraphs.includes(p as HTMLParagraphElement)) {
+          holdParagraph = p as HTMLParagraphElement;
+          holdParagraph.classList.add("long-pressing");
         }
-      }, 450);
+      }
     },
     { passive: true }
   );
   novelScroll.addEventListener(
     "touchmove",
     (e) => {
-      const t = e.touches[0];
-      if (!t) return;
-      if (Math.abs(t.clientX - startX) > 10 || Math.abs(t.clientY - startY) > 10) {
-        moved = true;
-        clearLP();
-      }
+      const t = Array.from(e.touches).find(touch => touch.identifier === touchId);
+      if (e.touches.length !== 1 || !t || Math.hypot(t.clientX - startX, t.clientY - startY) > 10) cancelGesture();
     },
     { passive: true }
   );
   novelScroll.addEventListener("touchend", (e) => {
+    const t = Array.from(e.changedTouches).find(touch => touch.identifier === touchId);
+    if (e.touches.length !== 0) {
+      cancelGesture();
+      return;
+    }
+    const p = holdParagraph;
     clearLP();
-    if (moved || Date.now() - startT >= 450) return; // 位移或長按已處理
-    const x = e.changedTouches[0]?.clientX ?? startX;
+    touchId = null;
+    if (!t || moved || !isNovelReaderOpen()
+      || Math.hypot(t.clientX - startX, t.clientY - startY) > 10) return;
+    if (performance.now() - startT >= 450) {
+      const idx = p ? paragraphs.indexOf(p) : -1;
+      if (idx >= 0 && !ttsActive && !ttsPaused && !webLoading) speakFrom(idx);
+      return;
+    }
+    const x = t.clientX;
     const w = window.innerWidth;
     if (readMode === "tap") {
       if (x > w * 0.6) pageScroll(1);
@@ -460,6 +475,18 @@ function setupReadingGestures() {
       else toggleBottomBar();
     } else {
       toggleBottomBar();
+    }
+  });
+  novelScroll.addEventListener("touchcancel", () => {
+    cancelGesture();
+    touchId = null;
+  });
+  novelScroll.addEventListener("scroll", cancelGesture, { passive: true });
+  novelContent.addEventListener("contextmenu", e => e.preventDefault());
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      cancelGesture();
+      touchId = null;
     }
   });
 }

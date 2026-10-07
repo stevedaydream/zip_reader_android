@@ -96,6 +96,11 @@ capabilities/         default.json（含 androidbridge:default）+ desktop.json�
 
 ## 狀態（2026-10-07）
 
+- 書源閱讀通知改置頂部：章節載入期間持續顯示，成功立即清除，失敗提示保留 3 秒。
+- 閱讀內文禁止文字選取；Android 長按段落以 450ms 背景漸變提示，滿時間後放開才朗讀；
+  位移超過 10px、多指、觸控取消或捲動皆取消，朗讀中與暫停時不接受長按。
+  前端 build、手勢與通知情境檢查、x86_64 debug APK 建置通過，已在 API 36 虛擬手機實際檢查畫面與觸控。
+  虛擬手機因空間限制使用移除原生除錯符號的測試副本（見 project_bugfix.md BF-15）。
 - Android 發佈 CI：setup-android@v3 明確指定 packages 為 platform-tools，避開已下架的舊 tools 套件。
 - release.bat：新版本號預設「目前版本 patch+1」；發版時以 scripts/release-notes.ps1 抓上一個 tag 後的
   commit 標題寫入 CHANGELOG.md（排除 bump/docs），Actions 取該版段落作為 GitHub Release 說明。
