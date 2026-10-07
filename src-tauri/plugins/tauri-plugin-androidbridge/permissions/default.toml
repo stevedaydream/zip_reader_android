@@ -13,6 +13,8 @@ permissions = [
   "allow-hasAllFilesAccess",
   "allow-requestAllFilesAccess",
   "allow-pickFolder",
+  "allow-hasNotificationPermission",
+  "allow-requestNotificationPermission",
   "allow-registerListener",
   "allow-removeListener",
 ]

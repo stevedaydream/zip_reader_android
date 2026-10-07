@@ -9,6 +9,8 @@ const COMMANDS: &[&str] = &[
     "hasAllFilesAccess",
     "requestAllFilesAccess",
     "pickFolder",
+    "hasNotificationPermission",
+    "requestNotificationPermission",
     // addPluginListener 底層走這兩個指令（事件 done/error 需要）
     "registerListener",
     "removeListener",

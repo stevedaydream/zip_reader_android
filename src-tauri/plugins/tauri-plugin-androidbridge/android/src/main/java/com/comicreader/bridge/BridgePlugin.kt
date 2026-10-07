@@ -13,9 +13,12 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.webkit.WebView
 import androidx.activity.result.ActivityResult
+import app.tauri.PermissionState
 import app.tauri.annotation.ActivityCallback
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
+import app.tauri.annotation.Permission
+import app.tauri.annotation.PermissionCallback
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
 import app.tauri.plugin.JSArray
@@ -41,7 +44,11 @@ class SetEngineArgs {
     var engine: String = ""
 }
 
-@TauriPlugin
+@TauriPlugin(
+    permissions = [
+        Permission(strings = ["android.permission.POST_NOTIFICATIONS"], alias = "notifications")
+    ]
+)
 class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     companion object {
         /** 朗讀進行中旗標，供 MainActivity 在螢幕關閉時保持 WebView/JS 存活 */
@@ -269,6 +276,35 @@ class BridgePlugin(private val activity: Activity) : Plugin(activity) {
     private fun isChinese(lang: String?): Boolean {
         val l = lang?.lowercase() ?: return false
         return l == "zh" || l == "cmn" || l == "yue" || l == "zho"
+    }
+
+    /** 是否可顯示通知（Android 13 以下免執行時權限，一律 true） */
+    private fun notificationGranted(): Boolean =
+        Build.VERSION.SDK_INT < 33 || getPermissionState("notifications") == PermissionState.GRANTED
+
+    /** 查詢通知權限：回傳 {granted} */
+    @Command
+    fun hasNotificationPermission(invoke: Invoke) {
+        val ret = JSObject()
+        ret.put("granted", notificationGranted())
+        invoke.resolve(ret)
+    }
+
+    /** 跳出系統通知權限詢問（朗讀通知與遙控按鈕需要）；回傳 {granted} */
+    @Command
+    fun requestNotificationPermission(invoke: Invoke) {
+        if (notificationGranted()) {
+            notificationPermissionResult(invoke)
+        } else {
+            requestPermissionForAlias("notifications", invoke, "notificationPermissionResult")
+        }
+    }
+
+    @PermissionCallback
+    fun notificationPermissionResult(invoke: Invoke) {
+        val ret = JSObject()
+        ret.put("granted", notificationGranted())
+        invoke.resolve(ret)
     }
 
     /** Android 11+ 是否已授予「所有檔案存取」 */

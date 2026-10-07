@@ -1,6 +1,6 @@
 # 改進計畫
 
-## 1. 朗讀時要求通知權限（POST_NOTIFICATIONS）
+## 1. ✅ 朗讀時要求通知權限（POST_NOTIFICATIONS）（2026-10-07 完成，實機驗證）
 
 **現況**：manifest 已宣告 `POST_NOTIFICATIONS`，但 app 從未在執行時要求權限。
 Android 13+（targetSdk 36）預設拒絕 → 前景服務雖可運作，但「正在朗讀」通知與

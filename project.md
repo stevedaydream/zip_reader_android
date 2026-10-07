@@ -98,6 +98,8 @@ capabilities/         default.json（含 androidbridge:default）+ desktop.json�
 
 - 修正 WebView 153 凍結隱藏頁面導致螢幕關閉後朗讀中斷：MainActivity.onStop 於朗讀中
   回報視窗仍可見（見 project_bugfix.md -6）。S25+ / Android 16 實機驗證關螢幕 5 分鐘連續朗讀＋換章。
+- 首次朗讀時詢問通知權限（Android 13+，只問一次，localStorage `notifAsked`）：
+  外掛新增 hasNotificationPermission / requestNotificationPermission（@TauriPlugin permissions alias "notifications"）。
 
 ## 狀態（2026-07-02）
 

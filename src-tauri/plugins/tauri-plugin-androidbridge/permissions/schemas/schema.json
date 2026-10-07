@@ -319,6 +319,18 @@
           "markdownDescription": "Denies the hasAllFilesAccess command without any pre-configured scope."
         },
         {
+          "description": "Enables the hasNotificationPermission command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-hasNotificationPermission",
+          "markdownDescription": "Enables the hasNotificationPermission command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the hasNotificationPermission command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-hasNotificationPermission",
+          "markdownDescription": "Denies the hasNotificationPermission command without any pre-configured scope."
+        },
+        {
           "description": "Enables the listEngines command without any pre-configured scope.",
           "type": "string",
           "const": "allow-listEngines",
@@ -391,6 +403,18 @@
           "markdownDescription": "Denies the requestAllFilesAccess command without any pre-configured scope."
         },
         {
+          "description": "Enables the requestNotificationPermission command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-requestNotificationPermission",
+          "markdownDescription": "Enables the requestNotificationPermission command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the requestNotificationPermission command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-requestNotificationPermission",
+          "markdownDescription": "Denies the requestNotificationPermission command without any pre-configured scope."
+        },
+        {
           "description": "Enables the setEngine command without any pre-configured scope.",
           "type": "string",
           "const": "allow-setEngine",
@@ -439,10 +463,10 @@
           "markdownDescription": "Denies the updatePlayback command without any pre-configured scope."
         },
         {
-          "description": "Default permissions: TTS speak/stop and all-files-access helpers\n#### This default permission set includes:\n\n- `allow-speak`\n- `allow-stopSpeak`\n- `allow-endTts`\n- `allow-updatePlayback`\n- `allow-listVoices`\n- `allow-listEngines`\n- `allow-setEngine`\n- `allow-hasAllFilesAccess`\n- `allow-requestAllFilesAccess`\n- `allow-pickFolder`\n- `allow-registerListener`\n- `allow-removeListener`",
+          "description": "Default permissions: TTS speak/stop and all-files-access helpers\n#### This default permission set includes:\n\n- `allow-speak`\n- `allow-stopSpeak`\n- `allow-endTts`\n- `allow-updatePlayback`\n- `allow-listVoices`\n- `allow-listEngines`\n- `allow-setEngine`\n- `allow-hasAllFilesAccess`\n- `allow-requestAllFilesAccess`\n- `allow-pickFolder`\n- `allow-hasNotificationPermission`\n- `allow-requestNotificationPermission`\n- `allow-registerListener`\n- `allow-removeListener`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions: TTS speak/stop and all-files-access helpers\n#### This default permission set includes:\n\n- `allow-speak`\n- `allow-stopSpeak`\n- `allow-endTts`\n- `allow-updatePlayback`\n- `allow-listVoices`\n- `allow-listEngines`\n- `allow-setEngine`\n- `allow-hasAllFilesAccess`\n- `allow-requestAllFilesAccess`\n- `allow-pickFolder`\n- `allow-registerListener`\n- `allow-removeListener`"
+          "markdownDescription": "Default permissions: TTS speak/stop and all-files-access helpers\n#### This default permission set includes:\n\n- `allow-speak`\n- `allow-stopSpeak`\n- `allow-endTts`\n- `allow-updatePlayback`\n- `allow-listVoices`\n- `allow-listEngines`\n- `allow-setEngine`\n- `allow-hasAllFilesAccess`\n- `allow-requestAllFilesAccess`\n- `allow-pickFolder`\n- `allow-hasNotificationPermission`\n- `allow-requestNotificationPermission`\n- `allow-registerListener`\n- `allow-removeListener`"
         }
       ]
     }

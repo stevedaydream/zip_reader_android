@@ -990,7 +990,28 @@ async function refreshNativeVoices() {
   }
 }
 
+let notifAsked = localStorage.getItem("notifAsked") === "1";
+
+/**
+ * Android 13+ 首次開始朗讀時詢問通知權限（朗讀通知與遙控按鈕需要）。
+ * 只問一次（localStorage 記錄），拒絕不影響朗讀。須在 speak 啟動前景服務之前完成。
+ */
+async function askNotificationPermissionOnce() {
+  notifAsked = true;
+  localStorage.setItem("notifAsked", "1");
+  try {
+    const r = await invoke<{ granted: boolean }>("plugin:androidbridge|hasNotificationPermission");
+    if (!r.granted) await invoke("plugin:androidbridge|requestNotificationPermission");
+  } catch {
+    /* 取不到權限狀態：略過 */
+  }
+}
+
 function speakFrom(index: number) {
+  if (isAndroid && !ttsActive && !notifAsked) {
+    void askNotificationPermissionOnce().then(() => speakFrom(index));
+    return;
+  }
   ttsActive = false; // 先壓住 cancel 觸發的 onend/onerror
   cancelSpeech();
   ttsPos = index;

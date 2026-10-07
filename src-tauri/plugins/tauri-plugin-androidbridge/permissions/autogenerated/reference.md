@@ -14,6 +14,8 @@ Default permissions: TTS speak/stop and all-files-access helpers
 - `allow-hasAllFilesAccess`
 - `allow-requestAllFilesAccess`
 - `allow-pickFolder`
+- `allow-hasNotificationPermission`
+- `allow-requestNotificationPermission`
 - `allow-registerListener`
 - `allow-removeListener`
 
@@ -74,6 +76,32 @@ Enables the hasAllFilesAccess command without any pre-configured scope.
 <td>
 
 Denies the hasAllFilesAccess command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`androidbridge:allow-hasNotificationPermission`
+
+</td>
+<td>
+
+Enables the hasNotificationPermission command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`androidbridge:deny-hasNotificationPermission`
+
+</td>
+<td>
+
+Denies the hasNotificationPermission command without any pre-configured scope.
 
 </td>
 </tr>
@@ -230,6 +258,32 @@ Enables the requestAllFilesAccess command without any pre-configured scope.
 <td>
 
 Denies the requestAllFilesAccess command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`androidbridge:allow-requestNotificationPermission`
+
+</td>
+<td>
+
+Enables the requestNotificationPermission command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`androidbridge:deny-requestNotificationPermission`
+
+</td>
+<td>
+
+Denies the requestNotificationPermission command without any pre-configured scope.
 
 </td>
 </tr>
