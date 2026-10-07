@@ -65,11 +65,26 @@ jobs:
           cp src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk \
              out/ComicReaderM-${{ github.ref_name }}.apk
 
+      # 從 CHANGELOG.md 取出本版段落（## vX.Y.Z 到下一個 ## 之前）當 Release 說明
+      - name: Release notes
+        run: |
+          awk -v tag="## ${{ github.ref_name }}" '
+            index($0, tag) == 1 { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > notes.md 2>/dev/null || true
+          {
+            echo "### 更新內容"
+            if [ -s notes.md ]; then cat notes.md; else echo "- 小幅修正與改進"; fi
+            echo
+            echo "Android APK（arm64 / armv7 / x86_64 universal）。"
+            echo "App 內「檢查更新」會偵測此版本並引導下載。"
+          } > release-body.md
+          cat release-body.md
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "漫畫閱讀器 Android ${{ github.ref_name }}"
           files: out/*.apk
-          body: |
-            Android APK（arm64 / armv7 / x86_64 universal）。
-            App 內「檢查更新」會偵測此版本並引導下載。
+          body_path: release-body.md

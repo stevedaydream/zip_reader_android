@@ -96,6 +96,8 @@ capabilities/         default.json（含 androidbridge:default）+ desktop.json�
 
 ## 狀態（2026-10-07）
 
+- release.bat：新版本號預設「目前版本 patch+1」；發版時以 scripts/release-notes.ps1 抓上一個 tag 後的
+  commit 標題寫入 CHANGELOG.md（排除 bump/docs），Actions 取該版段落作為 GitHub Release 說明。
 - 修正 WebView 153 凍結隱藏頁面導致螢幕關閉後朗讀中斷：MainActivity.onStop 於朗讀中
   回報視窗仍可見（見 project_bugfix.md -6）。S25+ / Android 16 實機驗證關螢幕 5 分鐘連續朗讀＋換章。
 - 首次朗讀時詢問通知權限（Android 13+，只問一次，localStorage `notifAsked`）：

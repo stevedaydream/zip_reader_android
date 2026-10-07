@@ -38,7 +38,12 @@ goto MENU
 :: ============================================================
 :: --- NEW RELEASE ---
 :NEW_RELEASE
-set /p NEW_VER=Enter new version (e.g. 0.1.1):
+:: Default: current version with patch +1 (e.g. 0.2.6 -> 0.2.7)
+set DEFAULT_VER=
+for /f %%v in ('powershell -NoProfile -Command "$p = '%CURRENT_VER%'.Split('.'); $p[2] = [int]$p[2] + 1; $p -join '.'"') do set DEFAULT_VER=%%v
+set NEW_VER=
+set /p NEW_VER=Enter new version [Enter = %DEFAULT_VER%]:
+if "%NEW_VER%"=="" set NEW_VER=%DEFAULT_VER%
 if "%NEW_VER%"=="" (
     echo ERROR: Version cannot be empty
     pause ^& goto MENU
@@ -68,8 +73,16 @@ if errorlevel 1 ( echo ERROR: Cargo.toml failed ^& pause ^& goto MENU )
 echo   Done.
 
 echo.
+echo [1b/4] Generating release notes (CHANGELOG.md)...
+chcp 65001 >nul
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-notes.ps1 -Version %NEW_VER%
+if errorlevel 1 ( echo ERROR: release notes failed ^& pause ^& goto MENU )
+set /p EDIT_NOTES=Edit CHANGELOG.md in Notepad before commit? (y/N):
+if /i "%EDIT_NOTES%"=="y" notepad CHANGELOG.md
+
+echo.
 echo [2/4] Git commit...
-git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
+git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock CHANGELOG.md
 git commit -m "chore: bump version to %NEW_VER%"
 if errorlevel 1 ( echo ERROR: git commit failed ^& pause ^& goto MENU )
 
